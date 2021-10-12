@@ -12,13 +12,16 @@ public class Forklift : MonoBehaviour
     [SerializeField]
     private float moveSpeed = 1f;
 
-    private string m_currentGoal = "WANDER";
+    private string m_order = "";
+    private string m_currentGoal = "";
     private LineNode m_targetNode = null;
     private LineNode m_previousNode = null;
 
     private float m_yRotation = 0f;
     private float m_targetRotation = 0f;
     private Vector3 m_targetPosition;
+
+    private FakeSocket m_socket;
 
     void Start()
     {
@@ -30,16 +33,50 @@ public class Forklift : MonoBehaviour
         m_targetRotation = m_yRotation;
         transform.rotation = Quaternion.Euler(0f, m_yRotation, 0f);
 
+        //connect to the control
+        m_socket = Control.Instance.CreateSocket();
+
         //TEMPORARY SINCE NO ORDER SYSTEM - start moving immediately
         UpdateTargetNode();
     }
 
     void Update()
     {
+        //clear order queue
+        string order = m_socket.Recieve();
+        while(order != null)
+        {
+            order = order.ToUpper();
+            string[] args = order.Split(',');
+            Debug.Log("Message recieved: " + order);
+            switch (args[0])
+            {
+                case "ORDERREQ":
+                    m_socket.Send("ORDERREP " + m_order);
+                    break;
+                case "GOTO":
+                    if(args.Length == 2)
+                    {
+                        m_order = order;
+                        m_currentGoal = args[1];
+                        UpdateTargetNode();
+                    }
+                    break;
+                case "IDLE":
+                    m_order = order;
+                    m_currentGoal = startNode.nodeId;
+                    UpdateTargetNode();
+                    break;
+            }
+            
+
+            order = m_socket.Recieve();
+        }
+
         //how much time for actions in this frame
         float timePassed = SimManager.Instance.ScaleDeltaTime(Time.deltaTime);
         
-
+        //do motion updates based on current orders
         while ((m_targetRotation != m_yRotation || m_targetPosition != transform.position) && timePassed > 0f)
         {
             //start turning to face the target direction
@@ -84,6 +121,15 @@ public class Forklift : MonoBehaviour
     private void UpdateTargetNode()
     {
         m_previousNode = m_targetNode;
+        if (m_currentGoal == "") return;
+        if(m_currentGoal == m_targetNode.nodeId && m_currentGoal != "")
+        {
+            m_currentGoal = "";
+            //only have complete an order if not idling
+            if (m_order != "IDLE") 
+                m_socket.Send("ORDERCOMP");
+            return;
+        }
 
         int defaultIndex = -1;
         int targetIndex = -1;
