@@ -40,7 +40,8 @@ public class Forklift : MonoBehaviour
 
         m_order = "IDLE";
         m_currentGoal = startNode.nodeId;
-        orderText.text = m_order;
+        if(orderText != null)
+            orderText.text = m_order;
         Arrived();
         UpdateTargetNode();
     }
@@ -64,14 +65,16 @@ public class Forklift : MonoBehaviour
                     {
                         m_order = order;
                         m_currentGoal = args[1];
-                        orderText.text = m_order;
+                        if(orderText != null)
+                            orderText.text = m_order;
                         UpdateTargetNode();
                     }
                     break;
                 case "IDLE":
                     m_order = order;
                     m_currentGoal = startNode.nodeId;
-                    orderText.text = m_order;
+                    if (orderText != null)
+                        orderText.text = m_order;
                     UpdateTargetNode();
                     break;
             }
@@ -129,12 +132,16 @@ public class Forklift : MonoBehaviour
     private void Arrived()
     {
         m_previousNode = m_targetNode;
+        m_inTransit = false;
     }
+
+    //currently in transit and cannot change destination
+    private bool m_inTransit = false;
 
     //based on current desitination, choose what the next node should be in its path
     private void UpdateTargetNode()
     {
-        if (m_currentGoal == "") return;
+        if (m_currentGoal == "" || m_inTransit) return;
         if(m_currentGoal == m_targetNode.nodeId && m_currentGoal != "")
         {
             m_currentGoal = "";
@@ -143,6 +150,8 @@ public class Forklift : MonoBehaviour
                 m_socket.Send("ORDERCOMP");
             return;
         }
+
+        m_inTransit = true;
 
         int defaultIndex = -1;
         int targetIndex = -1;
