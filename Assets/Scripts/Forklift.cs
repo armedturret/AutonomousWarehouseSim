@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class Forklift : MonoBehaviour
 {
+    public TMPro.TextMeshPro orderText;
+
     [SerializeField]
     private LineNode startNode = null;
 
@@ -36,7 +38,10 @@ public class Forklift : MonoBehaviour
         //connect to the control
         m_socket = Control.Instance.CreateSocket();
 
-        //TEMPORARY SINCE NO ORDER SYSTEM - start moving immediately
+        m_order = "IDLE";
+        m_currentGoal = startNode.nodeId;
+        orderText.text = m_order;
+        Arrived();
         UpdateTargetNode();
     }
 
@@ -59,12 +64,14 @@ public class Forklift : MonoBehaviour
                     {
                         m_order = order;
                         m_currentGoal = args[1];
+                        orderText.text = m_order;
                         UpdateTargetNode();
                     }
                     break;
                 case "IDLE":
                     m_order = order;
                     m_currentGoal = startNode.nodeId;
+                    orderText.text = m_order;
                     UpdateTargetNode();
                     break;
             }
@@ -107,6 +114,7 @@ public class Forklift : MonoBehaviour
 
                 if(m_targetNode != m_previousNode)
                 {
+                    Arrived();
                     UpdateTargetNode();
                 }
             }
@@ -117,10 +125,15 @@ public class Forklift : MonoBehaviour
         }
     }
 
+    //updates current node to be previous node
+    private void Arrived()
+    {
+        m_previousNode = m_targetNode;
+    }
+
     //based on current desitination, choose what the next node should be in its path
     private void UpdateTargetNode()
     {
-        m_previousNode = m_targetNode;
         if (m_currentGoal == "") return;
         if(m_currentGoal == m_targetNode.nodeId && m_currentGoal != "")
         {
@@ -188,5 +201,16 @@ public class Forklift : MonoBehaviour
     private Vector3 AsFlatPos(Vector3 pos)
     {
         return new Vector3(pos.x, 0f, pos.z);
+    }
+
+    private void OnDrawGizmos()
+    {
+        if(m_targetNode != null && m_previousNode != null)
+        {
+            Gizmos.color = Color.green;
+            Gizmos.DrawSphere(m_targetNode.transform.position, 0.5f);
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawSphere(m_previousNode.transform.position, 0.5f);
+        }
     }
 }
