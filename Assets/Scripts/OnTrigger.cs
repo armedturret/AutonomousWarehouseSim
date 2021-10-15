@@ -18,12 +18,14 @@ public class OnTrigger : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
+        if (other.isTrigger || other.GetComponent<Rigidbody>() == null) return;
         currentGameObjects.Add(other.gameObject);
         onTriggerUpdate.Invoke(this);
     }
 
     private void OnTriggerExit(Collider other)
     {
+        if (other.isTrigger || other.GetComponent<Rigidbody>() == null) return;
         currentGameObjects.Remove(other.gameObject);
         onTriggerUpdate.Invoke(this);
     }

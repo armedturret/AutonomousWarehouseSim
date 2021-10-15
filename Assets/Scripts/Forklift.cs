@@ -145,7 +145,7 @@ public class Forklift : MonoBehaviour
     {
         //something is detected, stop for now treating it as an obstruction
         //TODO: ADD EXCEPTION FOR TARGET CRATE
-        m_obstructed = trigger.currentGameObjects.Count > 1;
+        m_obstructed = trigger.currentGameObjects.Count > 0;
     }
 
     //currently in transit and cannot change destination
