@@ -91,7 +91,7 @@ public class Forklift : MonoBehaviour
         float timePassed = SimManager.Instance.ScaleDeltaTime(Time.deltaTime);
         
         //do motion updates based on current orders
-        while ((m_targetRotation != m_yRotation || m_targetPosition != transform.position) && timePassed > 0f && !m_obstructed)
+        while ((m_targetRotation != m_yRotation || m_targetPosition != transform.position) && timePassed > 0f)
         {
             //start turning to face the target direction
             float deltaRot = m_targetRotation - m_yRotation;
@@ -113,7 +113,7 @@ public class Forklift : MonoBehaviour
             deltaPos = Vector3.ClampMagnitude(deltaPos, moveSpeed * timePassed);
             transform.position += deltaPos;
 
-            if((m_targetPosition - transform.position).magnitude < moveSpeed * timePassed)
+            if((m_targetPosition - transform.position).magnitude < moveSpeed * timePassed && !m_obstructed)
             {
                 //snap to target if near
                 timePassed -= deltaPos.magnitude / moveSpeed;
