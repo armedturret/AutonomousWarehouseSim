@@ -1,5 +1,77 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &4197069326684818870
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 299900322615867481}
+  - component: {fileID: 3663805624361424437}
+  - component: {fileID: 3476251850296253337}
+  m_Layer: 0
+  m_Name: DetectTrigger
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &299900322615867481
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4197069326684818870}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.00000011920929, y: 1, z: 5.000001}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 5679112162612352730}
+  m_RootOrder: 3
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &3663805624361424437
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4197069326684818870}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 1
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Size: {x: 2, y: 2, z: 3}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &3476251850296253337
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4197069326684818870}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1509fa7aecbd9af4b9ced2ac90eca350, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  onTriggerUpdate:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 1409957850687518035}
+        m_TargetAssemblyTypeName: Forklift, Assembly-CSharp
+        m_MethodName: OnDetectUpdate
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1 &5679112162612352729
 GameObject:
   m_ObjectHideFlags: 0
@@ -10,6 +82,8 @@ GameObject:
   m_Component:
   - component: {fileID: 5679112162612352730}
   - component: {fileID: 1409957850687518035}
+  - component: {fileID: 7422013169680196921}
+  - component: {fileID: 3885899051763522728}
   m_Layer: 0
   m_Name: Forklift
   m_TagString: Untagged
@@ -31,6 +105,8 @@ Transform:
   - {fileID: 8900856152728827142}
   - {fileID: 712926457861372461}
   - {fileID: 1841520511471914324}
+  - {fileID: 299900322615867481}
+  - {fileID: 896134874543020306}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -47,9 +123,39 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   orderText: {fileID: 737766982555901137}
+  crateObject: {fileID: 1352686864826456046}
   startNode: {fileID: 0}
   turnSpeed: 60
   moveSpeed: 12
+--- !u!65 &7422013169680196921
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5679112162612352729}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Size: {x: 3, y: 5, z: 6.4834204}
+  m_Center: {x: 3.434905e-15, y: 2.6, z: 1.7582896}
+--- !u!54 &3885899051763522728
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5679112162612352729}
+  serializedVersion: 2
+  m_Mass: 1
+  m_Drag: 0
+  m_AngularDrag: 0.05
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
 --- !u!1 &6778376546749442443
 GameObject:
   m_ObjectHideFlags: 0
@@ -233,6 +339,50 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8c14f58c312a5b1408236b8d84a2631f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!1 &8167529609096288324
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 896134874543020306}
+  - component: {fileID: 504741697199367072}
+  m_Layer: 0
+  m_Name: InteractTrigger
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &896134874543020306
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8167529609096288324}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.00000071525574, y: 1, z: 4.000001}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 5679112162612352730}
+  m_RootOrder: 4
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &504741697199367072
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8167529609096288324}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 1
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Size: {x: 2, y: 2, z: 2}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &8986024059024544619
 GameObject:
   m_ObjectHideFlags: 0
@@ -402,6 +552,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 7eb4b27392f54764287616d28ff0e323, type: 3}
+--- !u!1 &1352686864826456046 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 7eb4b27392f54764287616d28ff0e323, type: 3}
+  m_PrefabInstance: {fileID: 2163095993747008191}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &1841520511471914324 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 7eb4b27392f54764287616d28ff0e323, type: 3}

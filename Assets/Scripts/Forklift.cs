@@ -6,6 +6,8 @@ public class Forklift : MonoBehaviour
 {
     public TMPro.TextMeshPro orderText;
 
+    public GameObject crateObject;
+
     [SerializeField]
     private LineNode startNode = null;
 
@@ -44,6 +46,8 @@ public class Forklift : MonoBehaviour
             orderText.text = m_order;
         Arrived();
         UpdateTargetNode();
+
+        crateObject.SetActive(false);
     }
 
     void Update()
@@ -87,7 +91,7 @@ public class Forklift : MonoBehaviour
         float timePassed = SimManager.Instance.ScaleDeltaTime(Time.deltaTime);
         
         //do motion updates based on current orders
-        while ((m_targetRotation != m_yRotation || m_targetPosition != transform.position) && timePassed > 0f)
+        while ((m_targetRotation != m_yRotation || m_targetPosition != transform.position) && timePassed > 0f && !m_obstructed)
         {
             //start turning to face the target direction
             float deltaRot = m_targetRotation - m_yRotation;
@@ -133,6 +137,15 @@ public class Forklift : MonoBehaviour
     {
         m_previousNode = m_targetNode;
         m_inTransit = false;
+    }
+
+    private bool m_obstructed = false;
+
+    public void OnDetectUpdate(OnTrigger trigger)
+    {
+        //something is detected, stop for now treating it as an obstruction
+        //TODO: ADD EXCEPTION FOR TARGET CRATE
+        m_obstructed = trigger.currentGameObjects.Count > 1;
     }
 
     //currently in transit and cannot change destination
