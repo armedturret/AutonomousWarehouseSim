@@ -7,6 +7,7 @@ public class Forklift : MonoBehaviour
     public TMPro.TextMeshPro orderText;
 
     public GameObject crateObject;
+    public OnTrigger detectTrigger;
 
     [SerializeField]
     private LineNode startNode = null;
@@ -50,7 +51,7 @@ public class Forklift : MonoBehaviour
         crateObject.SetActive(false);
     }
 
-    void Update()
+    void FixedUpdate()
     {
         //clear order queue
         string order = m_socket.Recieve();
@@ -58,7 +59,7 @@ public class Forklift : MonoBehaviour
         {
             order = order.ToUpper();
             string[] args = order.Split(',');
-            Debug.Log("Message recieved: " + order);
+            //Debug.Log("Message recieved: " + order);
             switch (args[0])
             {
                 case "ORDERREQ":
@@ -88,8 +89,10 @@ public class Forklift : MonoBehaviour
         }
 
         //how much time for actions in this frame
-        float timePassed = SimManager.Instance.ScaleDeltaTime(Time.deltaTime);
+        float timePassed = SimManager.Instance.ScaleDeltaTime(Time.fixedDeltaTime);
+
         
+
         //do motion updates based on current orders
         while ((m_targetRotation != m_yRotation || m_targetPosition != transform.position) && timePassed > 0f)
         {
@@ -108,12 +111,16 @@ public class Forklift : MonoBehaviour
                 timePassed = 0f;
             }
 
+            RecalculateObstructed();
+
+            if (m_obstructed) return;
+
             //start moving in the target direction
             Vector3 deltaPos = m_targetPosition - transform.position;
             deltaPos = Vector3.ClampMagnitude(deltaPos, moveSpeed * timePassed);
             transform.position += deltaPos;
 
-            if((m_targetPosition - transform.position).magnitude < moveSpeed * timePassed && !m_obstructed)
+            if ((m_targetPosition - transform.position).magnitude < moveSpeed * timePassed)
             {
                 //snap to target if near
                 timePassed -= deltaPos.magnitude / moveSpeed;
@@ -141,11 +148,11 @@ public class Forklift : MonoBehaviour
 
     private bool m_obstructed = false;
 
-    public void OnDetectUpdate(OnTrigger trigger)
+    public void RecalculateObstructed()
     {
         //something is detected, stop for now treating it as an obstruction
         //TODO: ADD EXCEPTION FOR TARGET CRATE
-        m_obstructed = trigger.currentGameObjects.Count > 0;
+        m_obstructed = detectTrigger.currentGameObjects.Count > 1;
     }
 
     //currently in transit and cannot change destination
@@ -184,12 +191,12 @@ public class Forklift : MonoBehaviour
         if(targetIndex != -1)
         {
             m_targetNode = m_previousNode.nextNodes[targetIndex];
-            Debug.Log("Set next node to: " + m_targetNode.gameObject);
+            //Debug.Log("Set next node to: " + m_targetNode.gameObject);
         }
         else if(defaultIndex != -1)
         {
             m_targetNode = m_previousNode.nextNodes[defaultIndex];
-            Debug.Log("Set next node to: " + m_targetNode.gameObject);
+            //Debug.Log("Set next node to: " + m_targetNode.gameObject);
         }
         else
         {
