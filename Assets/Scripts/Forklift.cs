@@ -7,7 +7,9 @@ public class Forklift : MonoBehaviour
     public TMPro.TextMeshPro orderText;
 
     public GameObject crateObject;
+    public Transform crateTransform;
     public OnTrigger detectTrigger;
+    public OnTrigger interactTrigger;
 
     [SerializeField]
     private LineNode startNode = null;
@@ -19,6 +21,7 @@ public class Forklift : MonoBehaviour
 
     private string m_order = "";
     private string m_currentGoal = "";
+    private string m_targetId = "";
     private LineNode m_targetNode = null;
     private LineNode m_previousNode = null;
 
@@ -47,8 +50,6 @@ public class Forklift : MonoBehaviour
             orderText.text = m_order;
         Arrived();
         UpdateTargetNode();
-
-        crateObject.SetActive(false);
     }
 
     void FixedUpdate()
@@ -75,6 +76,17 @@ public class Forklift : MonoBehaviour
                         UpdateTargetNode();
                     }
                     break;
+                case "CRATE":
+                    if(args.Length == 3)
+                    {
+                        m_order = order;
+                        m_currentGoal = args[1];
+                        m_targetId = args[2];
+                        if (orderText != null)
+                            orderText.text = m_order;
+                        UpdateTargetNode();
+                    }
+                    break;
                 case "IDLE":
                     m_order = order;
                     m_currentGoal = startNode.nodeId;
@@ -90,8 +102,6 @@ public class Forklift : MonoBehaviour
 
         //how much time for actions in this frame
         float timePassed = SimManager.Instance.ScaleDeltaTime(Time.fixedDeltaTime);
-
-        
 
         //do motion updates based on current orders
         while ((m_targetRotation != m_yRotation || m_targetPosition != transform.position) && timePassed > 0f)
@@ -114,6 +124,19 @@ public class Forklift : MonoBehaviour
             RecalculateObstructed();
 
             if (m_obstructed) return;
+
+            foreach(var crate in interactTrigger.currentGameObjects)
+            {
+                if(crate.GetComponent<Crate>() && crate.GetComponent<Crate>().ID == m_targetId && m_targetId != "")
+                {
+                    crate.transform.SetParent(crateTransform);
+                    crate.transform.localPosition = Vector3.zero;
+                    crateObject = crate;
+                    m_targetId = "";
+                    m_socket.Send("ORDERCOMP");
+                    return;
+                }
+            }
 
             //start moving in the target direction
             Vector3 deltaPos = m_targetPosition - transform.position;
@@ -151,8 +174,19 @@ public class Forklift : MonoBehaviour
     public void RecalculateObstructed()
     {
         //something is detected, stop for now treating it as an obstruction
-        //TODO: ADD EXCEPTION FOR TARGET CRATE
-        m_obstructed = detectTrigger.currentGameObjects.Count > 1;
+        int count = detectTrigger.currentGameObjects.Count;
+        for(int i = 0; i < detectTrigger.currentGameObjects.Count; i++)
+        {
+            GameObject currentIndex = detectTrigger.currentGameObjects[i];
+            if(currentIndex == gameObject || 
+                (currentIndex.GetComponent<Crate>() && currentIndex.GetComponent<Crate>().ID == m_targetId && m_targetId != "")
+                || (crateObject != null && currentIndex == crateObject))
+            {
+                count--;
+            }
+        }
+
+        m_obstructed = count > 0;
     }
 
     //currently in transit and cannot change destination
@@ -166,8 +200,19 @@ public class Forklift : MonoBehaviour
         {
             m_currentGoal = "";
             //only have complete an order if not idling
-            if (m_order != "IDLE") 
-                m_socket.Send("ORDERCOMP");
+            if (m_order != "IDLE")
+            {
+                if(m_targetId != "")
+                {
+                    m_socket.Send("ORDERINV");
+                    m_targetId = "";
+                }
+                else
+                {
+                    m_socket.Send("ORDERCOMP");
+                }
+            } 
+                
             return;
         }
 

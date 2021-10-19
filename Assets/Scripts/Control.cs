@@ -15,7 +15,6 @@ public class Control : MonoBehaviour
 
     private List<string> m_queuedOrders = new List<string>();
 
-
     private void Awake()
     {
         Instance = this;
@@ -43,6 +42,7 @@ public class Control : MonoBehaviour
                 switch (args[0])
                 {
                     case "ORDERCOMP":
+                    case "ORDERINV":
                         if(m_queuedOrders.Count > 0)
                         {
                             string nextOrder = m_queuedOrders[0];

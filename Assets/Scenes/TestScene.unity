@@ -875,13 +875,17 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 2728190293782793818, guid: 4e5cc24d45b79ce4298b40da380320fe, type: 3}
+      propertyPath: ID
+      value: DEFAULT
+      objectReference: {fileID: 0}
     - target: {fileID: 5178255315092761736, guid: 4e5cc24d45b79ce4298b40da380320fe, type: 3}
       propertyPath: m_RootOrder
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5178255315092761736, guid: 4e5cc24d45b79ce4298b40da380320fe, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 10
+      value: -11
       objectReference: {fileID: 0}
     - target: {fileID: 5178255315092761736, guid: 4e5cc24d45b79ce4298b40da380320fe, type: 3}
       propertyPath: m_LocalPosition.y
@@ -889,7 +893,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5178255315092761736, guid: 4e5cc24d45b79ce4298b40da380320fe, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -13
+      value: -7
       objectReference: {fileID: 0}
     - target: {fileID: 5178255315092761736, guid: 4e5cc24d45b79ce4298b40da380320fe, type: 3}
       propertyPath: m_LocalRotation.w
@@ -1779,7 +1783,7 @@ MonoBehaviour:
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
           m_IntArgument: 0
           m_FloatArgument: 0
-          m_StringArgument: GOTO,POINTC
+          m_StringArgument: CRATE,POINTC,DEFAULT
           m_BoolArgument: 0
         m_CallState: 2
 --- !u!114 &976554002
@@ -1926,7 +1930,7 @@ Mesh:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: pb_Mesh17116
+  m_Name: pb_Mesh17130
   serializedVersion: 10
   m_SubMeshes:
   - serializedVersion: 2
@@ -3237,7 +3241,7 @@ MonoBehaviour:
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
           m_IntArgument: 0
           m_FloatArgument: 0
-          m_StringArgument: GOTO,POINTB
+          m_StringArgument: CRATE,POINTB,DEFAULT
           m_BoolArgument: 0
         m_CallState: 2
 --- !u!114 &2067939542
@@ -3370,7 +3374,7 @@ MonoBehaviour:
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
           m_IntArgument: 0
           m_FloatArgument: 0
-          m_StringArgument: GOTO,POINTA
+          m_StringArgument: CRATE,POINTA,DEFAULT
           m_BoolArgument: 0
         m_CallState: 2
 --- !u!114 &2145474257

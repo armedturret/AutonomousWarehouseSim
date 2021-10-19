@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class OnTrigger : MonoBehaviour
 {
-    public HashSet<GameObject> currentGameObjects = new HashSet<GameObject>();
+    public List<GameObject> currentGameObjects = new List<GameObject>();
 
     private void OnTriggerEnter(Collider other)
     {
