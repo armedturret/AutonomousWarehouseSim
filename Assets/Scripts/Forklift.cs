@@ -65,7 +65,7 @@ public class Forklift : MonoBehaviour
         Arrived();
         UpdateTargetNode();
 
-        m_targetHeight = arm.position.y + 4f;
+        m_targetHeight = arm.position.y;
     }
 
     void FixedUpdate()
