@@ -6,6 +6,8 @@ public class Forklift : MonoBehaviour
 {
     public TMPro.TextMeshPro orderText;
 
+    public Transform armExtension;
+    public Transform arm;
     public GameObject crateObject;
     public Transform crateTransform;
     public OnTrigger detectTrigger;
@@ -14,10 +16,21 @@ public class Forklift : MonoBehaviour
     [SerializeField]
     private LineNode startNode = null;
 
+    [Header("Movement Settings")]
     [SerializeField]
     private float turnSpeed = 15f;
     [SerializeField]
     private float moveSpeed = 1f;
+    [SerializeField]
+    private float minArmPos = 0f;
+    [SerializeField]
+    private float maxArmPos = 1f;
+    [SerializeField]
+    private float minArmExtension = 0f;
+    [SerializeField]
+    private float maxArmExtension = 1f;
+    [SerializeField]
+    private float armExtensionSpeed = 1f;
 
     private string m_order = "";
     private string m_currentGoal = "";
@@ -28,6 +41,7 @@ public class Forklift : MonoBehaviour
     private float m_yRotation = 0f;
     private float m_targetRotation = 0f;
     private Vector3 m_targetPosition;
+    private float m_targetHeight = 0f;
 
     private FakeSocket m_socket;
 
@@ -50,6 +64,8 @@ public class Forklift : MonoBehaviour
             orderText.text = m_order;
         Arrived();
         UpdateTargetNode();
+
+        m_targetHeight = arm.position.y + 4f;
     }
 
     void FixedUpdate()
@@ -103,9 +119,11 @@ public class Forklift : MonoBehaviour
         //how much time for actions in this frame
         float timePassed = SimManager.Instance.ScaleDeltaTime(Time.fixedDeltaTime);
 
+        int iterations = 0;
         //do motion updates based on current orders
-        while ((m_targetRotation != m_yRotation || m_targetPosition != transform.position) && timePassed > 0f)
+        while (iterations < 6 && (m_targetRotation != m_yRotation || m_targetPosition != transform.position || Mathf.Abs(arm.position.y - m_targetHeight) > 0.001f) && timePassed > 0f)
         {
+            iterations++;
             //start turning to face the target direction
             float deltaRot = m_targetRotation - m_yRotation;
             deltaRot = Mathf.Clamp(deltaRot, -turnSpeed * timePassed, turnSpeed * timePassed);
@@ -125,6 +143,7 @@ public class Forklift : MonoBehaviour
 
             if (m_obstructed) return;
 
+            //pickup any crates
             foreach(var crate in interactTrigger.currentGameObjects)
             {
                 if(crate.GetComponent<Crate>() && crate.GetComponent<Crate>().ID == m_targetId && m_targetId != "")
@@ -135,6 +154,51 @@ public class Forklift : MonoBehaviour
                     m_targetId = "";
                     m_socket.Send("ORDERCOMP");
                     return;
+                }
+            }
+
+            //change forklift arm height
+            if(Mathf.Abs(arm.position.y - m_targetHeight) > 0.001f)
+            {
+                bool goingUp = m_targetHeight > arm.position.y;
+                float boundingArmPos = goingUp ? maxArmPos : minArmPos;
+                float boundingArmExPos = goingUp ? maxArmExtension : minArmExtension;
+                //distance to be covered this frame
+                float distanceCovered = timePassed *  armExtensionSpeed * (goingUp ? 1f : -1f);
+                float targetDelta = Mathf.Abs(m_targetHeight - arm.position.y);
+                distanceCovered = Mathf.Clamp(distanceCovered, -targetDelta, targetDelta);
+
+                
+                if(Mathf.Abs(distanceCovered) > Mathf.Abs(boundingArmPos - arm.localPosition.y))
+                {
+                    //snap to boundingArmPos and recalculate distance to travel
+                    timePassed -= (boundingArmPos - arm.localPosition.y) / armExtensionSpeed;
+                    arm.localPosition = new Vector3(arm.localPosition.x, boundingArmPos, arm.localPosition.z);
+
+                    //recalculate distance
+                    distanceCovered = timePassed * armExtensionSpeed;
+                    targetDelta = m_targetHeight - arm.position.y;
+                    distanceCovered = Mathf.Clamp(distanceCovered, -targetDelta, targetDelta);
+                }
+                else
+                {
+                    //move towards boundingArmPos
+                    arm.localPosition += new Vector3(0f, distanceCovered, 0f);
+                    distanceCovered = 0f;
+                    timePassed = 0f;
+                }
+
+                if (Mathf.Abs(distanceCovered) > Mathf.Abs(boundingArmExPos - armExtension.localPosition.y))
+                {
+                    //snap to boundingArmExPos and recalculate distance to travel
+                    timePassed -= (boundingArmExPos - armExtension.localPosition.y) / armExtensionSpeed;
+                    armExtension.localPosition = new Vector3(armExtension.localPosition.x, boundingArmExPos, armExtension.localPosition.z);
+                }
+                else
+                {
+                    //move towards boundingArmExPos
+                    armExtension.localPosition += new Vector3(0f, distanceCovered, 0f);
+                    timePassed = 0f;
                 }
             }
 
