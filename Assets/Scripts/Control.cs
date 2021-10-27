@@ -105,10 +105,7 @@ public class Control : MonoBehaviour
                             m_forkliftOrders[i] = directions;
                             break;
                         }
-                        goto case "ORDERINV";
-                    case "ORDERINV":
-                        Debug.LogError("Invalid order in queue: " + m_forkliftOrders[i]);
-                        if(m_queuedOrders.Count > 0)
+                        if (m_queuedOrders.Count > 0)
                         {
                             string nextOrder = m_queuedOrders[0];
                             m_queuedOrders.RemoveAt(0);
@@ -123,6 +120,9 @@ public class Control : MonoBehaviour
                             m_forkliftOrders[i] = "IDLE";
                         }
                         break;
+                    case "ORDERINV":
+                        Debug.LogError("Invalid order given: " + m_forkliftOrders[i]);
+                        goto case "ORDERCOMP";
                     case "ORDERREP":
                         m_forkliftOrders[i] = order.Substring(order.IndexOf(',') + 1);
                         break;

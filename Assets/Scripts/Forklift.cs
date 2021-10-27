@@ -33,6 +33,7 @@ public class Forklift : MonoBehaviour
     private float armExtensionSpeed = 1f;
 
     private string m_order = "";
+    private string m_specialNodeGoal = "";
     private string m_currentGoal = "";
     private string m_targetId = "";
     private LineNode m_targetNode = null;
@@ -98,6 +99,19 @@ public class Forklift : MonoBehaviour
                         m_order = order;
                         m_currentGoal = args[1];
                         m_targetId = args[2];
+                        if (orderText != null)
+                            orderText.text = m_order;
+                        UpdateTargetNode();
+                    }
+                    break;
+                case "DELIVER":
+                    if(args.Length == 4 && crateObject != null)
+                    {
+                        m_order = order;
+                        //go for the target row using currentGoal
+                        m_currentGoal = args[1];
+                        //set the special node goal value
+                        m_specialNodeGoal = "SHELF,"+args[2] + "," + args[3];
                         if (orderText != null)
                             orderText.text = m_order;
                         UpdateTargetNode();
@@ -262,12 +276,35 @@ public class Forklift : MonoBehaviour
     //currently in transit and cannot change destination
     private bool m_inTransit = false;
 
-    //based on current desitination, choose what the next node should be in its path
+    private bool CheckSpecialNodeConditions()
+    {
+        if (m_specialNodeGoal == "") return false;
+        var args = m_specialNodeGoal.Split(',');
+        //check shelf conditions
+        switch (args[0])
+        {
+            case "SHELF":
+                if (m_targetNode.GetComponent<ShelfNode>())
+                {
+                    var shelfTarget = m_targetNode.GetComponent<ShelfNode>();
+                    if (shelfTarget.rowNumber == int.Parse(args[1]))
+                    {
+                        return true;
+                    }
+                }
+                break;
+        }
+        //m_specialNodeGoal = "SHELF,"+args[2] + "," + args[3];
+        return false;
+    }
+
+    //based on current destination, choose what the next node should be in its path
     private void UpdateTargetNode()
     {
         if (m_currentGoal == "" || m_inTransit) return;
-        if(m_currentGoal == m_targetNode.nodeId && m_currentGoal != "")
+        if((m_currentGoal == m_targetNode.nodeId || CheckSpecialNodeConditions())&& m_currentGoal != "")
         {
+            m_specialNodeGoal = "";
             m_currentGoal = "";
             //only have complete an order if not idling
             if (m_order != "IDLE")
@@ -279,6 +316,7 @@ public class Forklift : MonoBehaviour
                 }
                 else
                 {
+                    m_targetId = "";
                     m_socket.Send("ORDERCOMP");
                 }
             } 
