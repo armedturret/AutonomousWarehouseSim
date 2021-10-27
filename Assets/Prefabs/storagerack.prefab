@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 1050202219441352126}
   - component: {fileID: 4124394353436123675}
   - component: {fileID: 2222594062181930705}
+  - component: {fileID: 483179088925832729}
   m_Layer: 0
   m_Name: storagerack
   m_TagString: Untagged
@@ -88,6 +89,22 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &483179088925832729
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 421299828045166340}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8a6b2827bd634574ab7b76f5b5fe1943, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  rowName: 
+  width: 2
+  rowLocation: 0
+  height: 3
 --- !u!1 &2881094774057688376
 GameObject:
   m_ObjectHideFlags: 0

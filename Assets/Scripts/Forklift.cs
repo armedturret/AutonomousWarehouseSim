@@ -76,7 +76,7 @@ public class Forklift : MonoBehaviour
         {
             order = order.ToUpper();
             string[] args = order.Split(',');
-            //Debug.Log("Message recieved: " + order);
+            Debug.Log("Message recieved: " + order);
             switch (args[0])
             {
                 case "ORDERREQ":
@@ -93,7 +93,7 @@ public class Forklift : MonoBehaviour
                     }
                     break;
                 case "CRATE":
-                    if(args.Length == 3)
+                    if(args.Length == 3 && crateObject == null)
                     {
                         m_order = order;
                         m_currentGoal = args[1];
@@ -109,6 +109,9 @@ public class Forklift : MonoBehaviour
                     if (orderText != null)
                         orderText.text = m_order;
                     UpdateTargetNode();
+                    break;
+                default:
+                    m_socket.Send("ORDERINV");
                     break;
             }
             
@@ -243,7 +246,10 @@ public class Forklift : MonoBehaviour
         {
             GameObject currentIndex = detectTrigger.currentGameObjects[i];
             if(currentIndex == gameObject || 
-                (currentIndex.GetComponent<Crate>() && currentIndex.GetComponent<Crate>().ID == m_targetId && m_targetId != "")
+                (currentIndex.GetComponent<Crate>() 
+                && currentIndex.GetComponent<Crate>().ID == m_targetId 
+                && m_targetId != "" 
+                && crateObject == null)
                 || (crateObject != null && currentIndex == crateObject))
             {
                 count--;

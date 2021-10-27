@@ -8,7 +8,7 @@ public class LineNode : MonoBehaviour
     public List<LineNode> nextNodes;
     public List<string> nextNodeDirections;
 
-    void OnDrawGizmos()
+    protected virtual void OnDrawGizmos()
     {
         Gizmos.color = Color.green;
         for (int i = 0; i < nextNodes.Count; i++)
