@@ -34,8 +34,11 @@ public class Forklift : MonoBehaviour
 
     private string m_order = "";
     private string m_specialNodeGoal = "";
+    private string m_targetNodeAction = "";
+    private string m_arriveAction = "";
     private string m_currentGoal = "";
     private string m_targetId = "";
+    private bool m_rotationFirst = true;
     private LineNode m_targetNode = null;
     private LineNode m_previousNode = null;
 
@@ -64,74 +67,13 @@ public class Forklift : MonoBehaviour
         if(orderText != null)
             orderText.text = m_order;
         Arrived();
-        UpdateTargetNode();
 
         m_targetHeight = arm.position.y;
     }
 
     void FixedUpdate()
     {
-        //clear order queue
-        string order = m_socket.Recieve();
-        while(order != null)
-        {
-            order = order.ToUpper();
-            string[] args = order.Split(',');
-            Debug.Log("Message recieved: " + order);
-            switch (args[0])
-            {
-                case "ORDERREQ":
-                    m_socket.Send("ORDERREP " + m_order);
-                    break;
-                case "GOTO":
-                    if(args.Length == 2)
-                    {
-                        m_order = order;
-                        m_currentGoal = args[1];
-                        if(orderText != null)
-                            orderText.text = m_order;
-                        UpdateTargetNode();
-                    }
-                    break;
-                case "CRATE":
-                    if(args.Length == 3 && crateObject == null)
-                    {
-                        m_order = order;
-                        m_currentGoal = args[1];
-                        m_targetId = args[2];
-                        if (orderText != null)
-                            orderText.text = m_order;
-                        UpdateTargetNode();
-                    }
-                    break;
-                case "DELIVER":
-                    if(args.Length == 4 && crateObject != null)
-                    {
-                        m_order = order;
-                        //go for the target row using currentGoal
-                        m_currentGoal = args[1];
-                        //set the special node goal value
-                        m_specialNodeGoal = "SHELF,"+args[2] + "," + args[3];
-                        if (orderText != null)
-                            orderText.text = m_order;
-                        UpdateTargetNode();
-                    }
-                    break;
-                case "IDLE":
-                    m_order = order;
-                    m_currentGoal = startNode.nodeId;
-                    if (orderText != null)
-                        orderText.text = m_order;
-                    UpdateTargetNode();
-                    break;
-                default:
-                    m_socket.Send("ORDERINV");
-                    break;
-            }
-            
-
-            order = m_socket.Recieve();
-        }
+        ReadOrderQueue();
 
         //how much time for actions in this frame
         float timePassed = SimManager.Instance.ScaleDeltaTime(Time.fixedDeltaTime);
@@ -141,19 +83,16 @@ public class Forklift : MonoBehaviour
         while (iterations < 6 && (m_targetRotation != m_yRotation || m_targetPosition != transform.position || Mathf.Abs(arm.position.y - m_targetHeight) > 0.001f) && timePassed > 0f)
         {
             iterations++;
-            //start turning to face the target direction
-            float deltaRot = m_targetRotation - m_yRotation;
-            deltaRot = Mathf.Clamp(deltaRot, -turnSpeed * timePassed, turnSpeed * timePassed);
-            transform.rotation = Quaternion.Euler(0f, deltaRot + m_yRotation, 0f);
-            m_yRotation = deltaRot + m_yRotation;
-            if (Mathf.Abs(m_targetRotation - m_yRotation) < turnSpeed * timePassed)
+
+            if (m_rotationFirst)
             {
-                timePassed -= deltaRot / turnSpeed;
-                transform.rotation = Quaternion.Euler(0f, m_targetRotation, 0f);
+                timePassed = UpdateRotation(timePassed);
+                timePassed = UpdateHeight(timePassed);
             }
             else
             {
-                timePassed = 0f;
+                timePassed = UpdateHeight(timePassed);
+                timePassed = UpdateRotation(timePassed);
             }
 
             RecalculateObstructed();
@@ -174,80 +113,132 @@ public class Forklift : MonoBehaviour
                 }
             }
 
-            //change forklift arm height
-            if(Mathf.Abs(arm.position.y - m_targetHeight) > 0.001f)
+            timePassed = UpdatePosition(timePassed);
+        }
+    }
+
+    private float UpdateRotation(float timePassed)
+    {
+        //start turning to face the target direction
+        float deltaRot = m_targetRotation - m_yRotation;
+        deltaRot = Mathf.Clamp(deltaRot, -turnSpeed * timePassed, turnSpeed * timePassed);
+        transform.rotation = Quaternion.Euler(0f, deltaRot + m_yRotation, 0f);
+        m_yRotation = deltaRot + m_yRotation;
+        if (Mathf.Abs(m_targetRotation - m_yRotation) < turnSpeed * timePassed)
+        {
+            timePassed -= deltaRot / turnSpeed;
+            transform.rotation = Quaternion.Euler(0f, m_targetRotation, 0f);
+        }
+        else
+        {
+            timePassed = 0f;
+        }
+
+        return timePassed;
+    }
+
+    private float UpdateHeight(float timePassed)
+    {
+        //change forklift arm height
+        if (Mathf.Abs(arm.position.y - m_targetHeight) > 0.001f)
+        {
+            bool goingUp = m_targetHeight > arm.position.y;
+            float boundingArmPos = goingUp ? maxArmPos : minArmPos;
+            float boundingArmExPos = goingUp ? maxArmExtension : minArmExtension;
+            //distance to be covered this frame
+            float distanceCovered = timePassed * armExtensionSpeed * (goingUp ? 1f : -1f);
+            float targetDelta = Mathf.Abs(m_targetHeight - arm.position.y);
+            distanceCovered = Mathf.Clamp(distanceCovered, -targetDelta, targetDelta);
+
+
+            if (Mathf.Abs(distanceCovered) > Mathf.Abs(boundingArmPos - arm.localPosition.y))
             {
-                bool goingUp = m_targetHeight > arm.position.y;
-                float boundingArmPos = goingUp ? maxArmPos : minArmPos;
-                float boundingArmExPos = goingUp ? maxArmExtension : minArmExtension;
-                //distance to be covered this frame
-                float distanceCovered = timePassed *  armExtensionSpeed * (goingUp ? 1f : -1f);
-                float targetDelta = Mathf.Abs(m_targetHeight - arm.position.y);
+                //snap to boundingArmPos and recalculate distance to travel
+                timePassed -= Mathf.Abs(boundingArmPos - arm.localPosition.y) / armExtensionSpeed;
+                arm.localPosition = new Vector3(arm.localPosition.x, boundingArmPos, arm.localPosition.z);
+
+                //recalculate distance
+                distanceCovered = timePassed * armExtensionSpeed * (goingUp ? 1f : -1f);
+                targetDelta = Mathf.Abs(m_targetHeight - arm.position.y);
                 distanceCovered = Mathf.Clamp(distanceCovered, -targetDelta, targetDelta);
-
-                
-                if(Mathf.Abs(distanceCovered) > Mathf.Abs(boundingArmPos - arm.localPosition.y))
-                {
-                    //snap to boundingArmPos and recalculate distance to travel
-                    timePassed -= (boundingArmPos - arm.localPosition.y) / armExtensionSpeed;
-                    arm.localPosition = new Vector3(arm.localPosition.x, boundingArmPos, arm.localPosition.z);
-
-                    //recalculate distance
-                    distanceCovered = timePassed * armExtensionSpeed;
-                    targetDelta = m_targetHeight - arm.position.y;
-                    distanceCovered = Mathf.Clamp(distanceCovered, -targetDelta, targetDelta);
-                }
-                else
-                {
-                    //move towards boundingArmPos
-                    arm.localPosition += new Vector3(0f, distanceCovered, 0f);
-                    distanceCovered = 0f;
-                    timePassed = 0f;
-                }
-
-                if (Mathf.Abs(distanceCovered) > Mathf.Abs(boundingArmExPos - armExtension.localPosition.y))
-                {
-                    //snap to boundingArmExPos and recalculate distance to travel
-                    timePassed -= (boundingArmExPos - armExtension.localPosition.y) / armExtensionSpeed;
-                    armExtension.localPosition = new Vector3(armExtension.localPosition.x, boundingArmExPos, armExtension.localPosition.z);
-                }
-                else
-                {
-                    //move towards boundingArmExPos
-                    armExtension.localPosition += new Vector3(0f, distanceCovered, 0f);
-                    timePassed = 0f;
-                }
-            }
-
-            //start moving in the target direction
-            Vector3 deltaPos = m_targetPosition - transform.position;
-            deltaPos = Vector3.ClampMagnitude(deltaPos, moveSpeed * timePassed);
-            transform.position += deltaPos;
-
-            if ((m_targetPosition - transform.position).magnitude < moveSpeed * timePassed)
-            {
-                //snap to target if near
-                timePassed -= deltaPos.magnitude / moveSpeed;
-                transform.position = m_targetPosition;
-
-                if(m_targetNode != m_previousNode)
-                {
-                    Arrived();
-                    UpdateTargetNode();
-                }
             }
             else
             {
+                //move towards boundingArmPos
+                arm.localPosition += new Vector3(0f, distanceCovered, 0f);
+                distanceCovered = 0f;
+                timePassed = 0f;
+            }
+
+            if (Mathf.Abs(distanceCovered) > Mathf.Abs(boundingArmExPos - armExtension.localPosition.y))
+            {
+                //snap to boundingArmExPos and recalculate distance to travel
+                timePassed -= Mathf.Abs(boundingArmExPos - armExtension.localPosition.y) / armExtensionSpeed;
+                armExtension.localPosition = new Vector3(armExtension.localPosition.x, boundingArmExPos, armExtension.localPosition.z);
+            }
+            else
+            {
+                //move towards boundingArmExPos
+                armExtension.localPosition += new Vector3(0f, distanceCovered, 0f);
                 timePassed = 0f;
             }
         }
+
+        return timePassed;
+    }
+
+    private float UpdatePosition(float timePassed)
+    {
+        //start moving in the target direction
+        Vector3 deltaPos = m_targetPosition - transform.position;
+        deltaPos = Vector3.ClampMagnitude(deltaPos, moveSpeed * timePassed);
+        transform.position += deltaPos;
+
+        if ((m_targetPosition - transform.position).magnitude < moveSpeed * timePassed)
+        {
+            //snap to target if near
+            timePassed -= deltaPos.magnitude / moveSpeed;
+            transform.position = m_targetPosition;
+
+            Arrived();
+        }
+        else
+        {
+            timePassed = 0f;
+        }
+
+        return timePassed;
     }
 
     //updates current node to be previous node
     private void Arrived()
     {
-        m_previousNode = m_targetNode;
-        m_inTransit = false;
+        if(m_arriveAction != "")
+        {
+            Debug.Log("Executing arrive action: " + m_arriveAction);
+            //drop the crate and then back off
+            switch (m_arriveAction)
+            {
+                case "dropcrate":
+                    crateObject.transform.SetParent(null);
+                    crateObject = null;
+                    m_targetPosition = AsFlatPos(m_targetNode.transform.position);
+                    m_arriveAction = "resetheight";
+                    break;
+                case "resetheight":
+                    m_arriveAction = "";
+                    m_rotationFirst = false;
+                    m_targetHeight = 0f;
+                    m_socket.Send("ORDERCOMP");
+                    break;
+            }
+        }
+        else if(m_targetNode != m_previousNode)
+        {
+            m_inTransit = false;
+            m_previousNode = m_targetNode;
+            UpdateTargetNode();
+        }
     }
 
     private bool m_obstructed = false;
@@ -271,10 +262,78 @@ public class Forklift : MonoBehaviour
         }
 
         m_obstructed = count > 0;
+        if (m_arriveAction != "")
+            m_obstructed = false;
     }
 
     //currently in transit and cannot change destination
     private bool m_inTransit = false;
+
+    private void ReadOrderQueue()
+    {
+        //clear order queue
+        string order = m_socket.Recieve();
+        while (order != null)
+        {
+            order = order.ToUpper();
+            string[] args = order.Split(',');
+            Debug.Log("Message recieved: " + order);
+            switch (args[0])
+            {
+                case "ORDERREQ":
+                    m_socket.Send("ORDERREP " + m_order);
+                    break;
+                case "GOTO":
+                    if (args.Length == 2)
+                    {
+                        m_order = order;
+                        m_currentGoal = args[1];
+                        if (orderText != null)
+                            orderText.text = m_order;
+                        UpdateTargetNode();
+                    }
+                    break;
+                case "CRATE":
+                    if (args.Length == 3 && crateObject == null)
+                    {
+                        m_order = order;
+                        m_currentGoal = args[1];
+                        m_targetId = args[2];
+                        if (orderText != null)
+                            orderText.text = m_order;
+                        UpdateTargetNode();
+                    }
+                    break;
+                case "DELIVER":
+                    if (args.Length == 4 && crateObject != null)
+                    {
+                        m_order = order;
+                        //go for the target row using currentGoal
+                        m_currentGoal = args[1];
+                        //set the special node goal value
+                        m_specialNodeGoal = "SHELF," + args[2] + "," + args[3];
+                        m_targetNodeAction = "delivershelf";
+                        if (orderText != null)
+                            orderText.text = m_order;
+                        UpdateTargetNode();
+                    }
+                    break;
+                case "IDLE":
+                    m_order = order;
+                    m_currentGoal = startNode.nodeId;
+                    if (orderText != null)
+                        orderText.text = m_order;
+                    UpdateTargetNode();
+                    break;
+                default:
+                    m_socket.Send("ORDERINV");
+                    break;
+            }
+
+
+            order = m_socket.Recieve();
+        }
+    }
 
     private bool CheckSpecialNodeConditions()
     {
@@ -302,12 +361,12 @@ public class Forklift : MonoBehaviour
     private void UpdateTargetNode()
     {
         if (m_currentGoal == "" || m_inTransit) return;
-        if((m_currentGoal == m_targetNode.nodeId || CheckSpecialNodeConditions())&& m_currentGoal != "")
+        if((m_currentGoal == m_targetNode.nodeId || CheckSpecialNodeConditions()) && m_currentGoal != "")
         {
             m_specialNodeGoal = "";
             m_currentGoal = "";
             //only have complete an order if not idling
-            if (m_order != "IDLE")
+            if (m_order != "IDLE" && m_targetNodeAction == "")
             {
                 if(m_targetId != "")
                 {
@@ -319,8 +378,25 @@ public class Forklift : MonoBehaviour
                     m_targetId = "";
                     m_socket.Send("ORDERCOMP");
                 }
-            } 
-                
+            }else if (m_targetNodeAction != "")
+            {
+                Debug.Log("Executing target action: " + m_targetNodeAction);
+                switch (m_targetNodeAction)
+                {
+                    case "delivershelf":
+                        //rotate, change height, then moveforward
+                        var shelfRow = int.Parse(m_order.Split(',')[3]);
+                        ShelfNode shelfNode = m_targetNode.GetComponent<ShelfNode>();
+                        FaceTowards(shelfNode.shelfTransform.position);
+                        m_targetHeight = shelfNode.baseHeight + shelfNode.offset * shelfRow;
+                        m_targetPosition = AsFlatPos(shelfNode.shelfTransform.position);
+                        m_targetNodeAction = "";
+                        m_arriveAction = "dropcrate";
+                        m_rotationFirst = true;
+                        break;
+                }
+            }
+
             return;
         }
 
