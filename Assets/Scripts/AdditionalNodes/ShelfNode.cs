@@ -17,10 +17,11 @@ public class ShelfNode : LineNode
 
         //draw the extra shelf tranform
         Gizmos.color = Color.red;
+        Gizmos.DrawIcon(transform.position, "shelficon", true);
         if(shelfTransform != null)
         {
             Gizmos.DrawLine(transform.position, shelfTransform.position);
-            Gizmos.DrawCube(shelfTransform.position, new Vector3(1f, 1f, 1f));
+            Gizmos.DrawIcon(shelfTransform.position, "redflag", true);
         }
     }
 }

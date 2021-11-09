@@ -126,6 +126,12 @@ public class Control : MonoBehaviour
                     case "ORDERREP":
                         m_forkliftOrders[i] = order.Substring(order.IndexOf(',') + 1);
                         break;
+                    case "BLOCKLEFT":
+                        SendAll("BLOCKFREED,"+args[1]);
+                        break;
+                    case "BLOCKENTERED":
+                        SendAll("BLOCKOCCUPIED," + args[1]);
+                        break;
                 }
 
                 order = forklift.Recieve();
@@ -192,6 +198,13 @@ public class Control : MonoBehaviour
             {
                 orderQueueUI.text = "";
             }
+        }
+    }
+
+    private void SendAll(string message)
+    {
+        foreach(var forklift in m_forklifts){
+            forklift.Send(message);
         }
     }
 }

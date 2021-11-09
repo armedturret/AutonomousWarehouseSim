@@ -5,7 +5,7 @@ using UnityEngine;
 public class LineNode : MonoBehaviour
 {
     public string nodeId = ""; //"" if not important spot
-    public List<LineNode> nextNodes;
+    public List<LineNode> nextNodes = new List<LineNode>();
     public List<string> nextNodeDirections;
 
     protected virtual void OnDrawGizmos()
@@ -17,6 +17,5 @@ public class LineNode : MonoBehaviour
                 Gizmos.DrawLine(transform.position, nextNodes[i].transform.position);
         }
         Gizmos.color = Color.blue;
-        Gizmos.DrawCube(transform.position, new Vector3(1f, 1f, 1f));
     }
 }

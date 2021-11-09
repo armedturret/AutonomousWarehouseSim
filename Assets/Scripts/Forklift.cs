@@ -49,6 +49,8 @@ public class Forklift : MonoBehaviour
 
     private FakeSocket m_socket;
 
+    private HashSet<string> m_blockedNodes = new HashSet<string>();
+
     void Start()
     {
         //teleport to the start pos
@@ -189,6 +191,9 @@ public class Forklift : MonoBehaviour
 
     private float UpdatePosition(float timePassed)
     {
+        BlockNode blockNode = m_targetNode.GetComponent<BlockNode>();
+        if(blockNode && blockNode.blockType == BlockNode.BlockType.ENTRANCE && m_blockedNodes.Contains(blockNode.blockId)) return timePassed;
+
         //start moving in the target direction
         Vector3 deltaPos = m_targetPosition - transform.position;
         deltaPos = Vector3.ClampMagnitude(deltaPos, moveSpeed * timePassed);
@@ -204,7 +209,7 @@ public class Forklift : MonoBehaviour
         }
         else
         {
-            timePassed = 0f;
+            return 0f;
         }
 
         return timePassed;
@@ -236,6 +241,17 @@ public class Forklift : MonoBehaviour
         else if(m_targetNode != m_previousNode)
         {
             m_inTransit = false;
+
+            //check if the target node was a block node and occupy this block
+            BlockNode blockNode = m_targetNode.GetComponent<BlockNode>();
+            if (blockNode && blockNode.blockType == BlockNode.BlockType.ENTRANCE)
+            {
+                m_socket.Send("BLOCKENTERED," + blockNode.blockId);
+            }else if(blockNode && blockNode.blockType == BlockNode.BlockType.EXIT && m_blockedNodes.Contains(blockNode.blockId))
+            {
+                m_socket.Send("BLOCKLEFT," + blockNode.blockId);
+            }
+
             m_previousNode = m_targetNode;
             UpdateTargetNode();
         }
@@ -324,6 +340,13 @@ public class Forklift : MonoBehaviour
                     if (orderText != null)
                         orderText.text = m_order;
                     UpdateTargetNode();
+                    break;
+                case "BLOCKOCCUPIED":
+                    m_blockedNodes.Add(args[1]);
+                    break;
+                case "BLOCKFREED":
+                    if(m_blockedNodes.Contains(args[1]))
+                        m_blockedNodes.Remove(args[1]);
                     break;
                 default:
                     m_socket.Send("ORDERINV");
@@ -420,12 +443,10 @@ public class Forklift : MonoBehaviour
         if(targetIndex != -1)
         {
             m_targetNode = m_previousNode.nextNodes[targetIndex];
-            //Debug.Log("Set next node to: " + m_targetNode.gameObject);
         }
         else if(defaultIndex != -1)
         {
             m_targetNode = m_previousNode.nextNodes[defaultIndex];
-            //Debug.Log("Set next node to: " + m_targetNode.gameObject);
         }
         else
         {
