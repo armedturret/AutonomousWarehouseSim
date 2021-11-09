@@ -86,6 +86,10 @@ public class Forklift : MonoBehaviour
         {
             iterations++;
 
+            RecalculateObstructed();
+
+            if (m_obstructed) return;
+
             if (m_rotationFirst)
             {
                 timePassed = UpdateRotation(timePassed);
@@ -96,10 +100,6 @@ public class Forklift : MonoBehaviour
                 timePassed = UpdateHeight(timePassed);
                 timePassed = UpdateRotation(timePassed);
             }
-
-            RecalculateObstructed();
-
-            if (m_obstructed) return;
 
             //pickup any crates
             if(timePassed > 0)
@@ -113,7 +113,11 @@ public class Forklift : MonoBehaviour
                         crate.transform.localRotation = Quaternion.identity;
                         crateObject = crate;
                         m_targetId = "";
-                        m_socket.Send("ORDERCOMP");
+                        //check if it needs to back up first, otherwise complete the order
+                        if (m_arriveAction == "returnstart")
+                            Arrived();
+                        else
+                            m_socket.Send("ORDERCOMP");
                         return;
                     }
                 }
@@ -229,16 +233,30 @@ public class Forklift : MonoBehaviour
             switch (m_arriveAction)
             {
                 case "dropcrate":
+                    //drop the crate at the right location upon arrival
                     crateObject.transform.SetParent(null);
                     crateObject = null;
                     m_targetPosition = AsFlatPos(m_targetNode.transform.position);
                     m_arriveAction = "resetheight";
                     break;
                 case "resetheight":
+                    //set height to 0 upon arrival
                     m_arriveAction = "";
                     m_rotationFirst = false;
                     m_targetHeight = 0f;
                     m_socket.Send("ORDERCOMP");
+                    break;
+                case "returnstart":
+                    //return to the start of the truck node and check if theres a crate held
+                    m_arriveAction = "compifcrate";
+                    m_targetPosition = AsFlatPos(m_targetNode.transform.position);
+                    break;
+                case "compifcrate":
+                    m_arriveAction = "";
+                    if (crateObject != null)
+                        m_socket.Send("ORDERCOMP");
+                    else
+                        m_socket.Send("ORDERINV");
                     break;
             }
         }
@@ -311,19 +329,23 @@ public class Forklift : MonoBehaviour
                         if (orderText != null)
                             orderText.text = m_order;
                         UpdateTargetNode();
+                        break;
                     }
-                    break;
+                    goto default;
                 case "CRATE":
                     if (args.Length == 3 && crateObject == null)
                     {
                         m_order = order;
                         m_currentGoal = args[1];
                         m_targetId = args[2];
+                        //goal is to check if its a truck node and move down it to complete its actions but not required
+                        m_targetNodeAction = "checktruckgrab";
                         if (orderText != null)
                             orderText.text = m_order;
                         UpdateTargetNode();
+                        break;
                     }
-                    break;
+                    goto default;
                 case "DELIVER":
                     if (args.Length == 4 && crateObject != null)
                     {
@@ -336,8 +358,9 @@ public class Forklift : MonoBehaviour
                         if (orderText != null)
                             orderText.text = m_order;
                         UpdateTargetNode();
+                        break;
                     }
-                    break;
+                    goto default;
                 case "IDLE":
                     m_order = order;
                     m_currentGoal = startNode.nodeId;
@@ -387,7 +410,9 @@ public class Forklift : MonoBehaviour
     //based on current destination, choose what the next node should be in its path
     private void UpdateTargetNode()
     {
+        //mid movement or no goal, do not update
         if (m_currentGoal == "" || m_inTransit) return;
+        //check final destination goals
         if((m_currentGoal == m_targetNode.nodeId || CheckSpecialNodeConditions()) && m_currentGoal != "")
         {
             m_specialNodeGoal = "";
@@ -397,8 +422,8 @@ public class Forklift : MonoBehaviour
             {
                 if(m_targetId != "")
                 {
-                    m_socket.Send("ORDERINV");
                     m_targetId = "";
+                    m_socket.Send("ORDERINV");
                 }
                 else
                 {
@@ -421,12 +446,30 @@ public class Forklift : MonoBehaviour
                         m_arriveAction = "dropcrate";
                         m_rotationFirst = true;
                         break;
+                    case "checktruckgrab":
+                        //check if this is a truck node, otherwise send an order invalid
+                        TruckNode truckNode = m_targetNode.GetComponent<TruckNode>();
+                        if (truckNode)
+                        {
+                            //traverse the truck node
+                            m_arriveAction = "returnstart";
+                            FaceTowards(truckNode.truckEnd.position);
+                            m_targetNodeAction = "";
+                            m_targetPosition = AsFlatPos(truckNode.truckEnd.position);
+                        }
+                        else
+                        {
+                            m_targetId = "";
+                            m_socket.Send("ORDERINV");
+                        }
+                        break;
                 }
             }
 
             return;
         }
 
+        //mid movement, do no update
         m_inTransit = true;
 
         int defaultIndex = -1;
