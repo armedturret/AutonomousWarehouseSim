@@ -11,6 +11,9 @@ public class BlockNode : LineNode
     protected override void OnDrawGizmos()
     {
         base.OnDrawGizmos();
-        Gizmos.DrawIcon(transform.position, "stop");
+        if (blockType == BlockType.ENTRANCE)
+            Gizmos.DrawIcon(transform.position, "stop");
+        else
+            Gizmos.DrawIcon(transform.position, "flag");
     }
 }

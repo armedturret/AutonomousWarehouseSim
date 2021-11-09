@@ -102,16 +102,20 @@ public class Forklift : MonoBehaviour
             if (m_obstructed) return;
 
             //pickup any crates
-            foreach(var crate in interactTrigger.currentGameObjects)
+            if(timePassed > 0)
             {
-                if(crate.GetComponent<Crate>() && crate.GetComponent<Crate>().ID == m_targetId && m_targetId != "")
+                foreach (var crate in interactTrigger.currentGameObjects)
                 {
-                    crate.transform.SetParent(crateTransform);
-                    crate.transform.localPosition = Vector3.zero;
-                    crateObject = crate;
-                    m_targetId = "";
-                    m_socket.Send("ORDERCOMP");
-                    return;
+                    if (crate.GetComponent<Crate>() && crate.GetComponent<Crate>().ID == m_targetId && m_targetId != "")
+                    {
+                        crate.transform.SetParent(crateTransform);
+                        crate.transform.localPosition = Vector3.zero;
+                        crate.transform.localRotation = Quaternion.identity;
+                        crateObject = crate;
+                        m_targetId = "";
+                        m_socket.Send("ORDERCOMP");
+                        return;
+                    }
                 }
             }
 
