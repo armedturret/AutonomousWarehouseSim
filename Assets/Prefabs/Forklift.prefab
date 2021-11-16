@@ -168,7 +168,7 @@ MonoBehaviour:
   maxArmPos: 8
   minArmExtension: 0
   maxArmExtension: 8
-  armExtensionSpeed: 2
+  armExtensionSpeed: 3
 --- !u!65 &7422013169680196921
 BoxCollider:
   m_ObjectHideFlags: 0

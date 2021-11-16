@@ -106,7 +106,7 @@ public class Forklift : MonoBehaviour
             {
                 foreach (var crate in interactTrigger.currentGameObjects)
                 {
-                    if (crate.GetComponent<Crate>() && crate.GetComponent<Crate>().ID == m_targetId && m_targetId != "")
+                    if (crate.GetComponent<Crate>() && crate.GetComponent<Crate>().Id == m_targetId && m_targetId != "")
                     {
                         crate.transform.SetParent(crateTransform);
                         crate.transform.localPosition = Vector3.zero;
@@ -290,7 +290,7 @@ public class Forklift : MonoBehaviour
             GameObject currentIndex = detectTrigger.currentGameObjects[i];
             if(currentIndex == gameObject || 
                 (currentIndex.GetComponent<Crate>() 
-                && currentIndex.GetComponent<Crate>().ID == m_targetId 
+                && currentIndex.GetComponent<Crate>().Id == m_targetId 
                 && m_targetId != "" 
                 && crateObject == null)
                 || (crateObject != null && currentIndex == crateObject))

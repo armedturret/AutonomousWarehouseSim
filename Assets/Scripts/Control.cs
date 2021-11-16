@@ -207,4 +207,22 @@ public class Control : MonoBehaviour
             forklift.Send(message);
         }
     }
+
+    public void TruckArrived(string arguments)
+    {
+        //spawn crates if it is a dropoff argument
+        string[] args = arguments.Split(',');
+        if (args.Length > 2 && args[0] == "DROPOFF")
+        {
+            for (int i = 2; i < args.Length; i++)
+            {
+                AssignCommand("CRATE,LOADINGBAYONE,"+args[i]);
+            }
+        }
+    }
+
+    public void TruckLeft(string loadingBayId)
+    {
+
+    }
 }
