@@ -115,9 +115,14 @@ public class Forklift : MonoBehaviour
                         m_targetId = "";
                         //check if it needs to back up first, otherwise complete the order
                         if (m_arriveAction == "returnstart")
+                        {
                             Arrived();
-                        else
+                        }
+                        else if(m_arriveAction != "compifcrate")
+                        {
+                            Debug.Log("COMP through crate");
                             m_socket.Send("ORDERCOMP");
+                        }   
                         return;
                     }
                 }
@@ -244,6 +249,7 @@ public class Forklift : MonoBehaviour
                     m_arriveAction = "";
                     m_rotationFirst = false;
                     m_targetHeight = 0f;
+                    Debug.Log("COMP through height");
                     m_socket.Send("ORDERCOMP");
                     break;
                 case "returnstart":
@@ -253,6 +259,9 @@ public class Forklift : MonoBehaviour
                     break;
                 case "compifcrate":
                     m_arriveAction = "";
+                    m_rotationFirst = false;
+                    m_targetHeight = 0f;
+                    Debug.Log("COMP through ifcrate");
                     if (crateObject != null)
                         m_socket.Send("ORDERCOMP");
                     else
@@ -346,6 +355,22 @@ public class Forklift : MonoBehaviour
                         break;
                     }
                     goto default;
+                case "CRATESHELF":
+                    if (args.Length == 5)
+                    {
+                        m_order = order;
+                        //go for the target row using currentGoal
+                        m_currentGoal = args[1];
+                        m_targetId = args[4];
+                        //set the special node goal value
+                        m_specialNodeGoal = "SHELF," + args[2] + "," + args[3];
+                        m_targetNodeAction = "grabshelf";
+                        if (orderText != null)
+                            orderText.text = m_order;
+                        UpdateTargetNode();
+                        break;
+                    }
+                    goto default;
                 case "DELIVER":
                     if (args.Length == 4 && crateObject != null)
                     {
@@ -428,6 +453,7 @@ public class Forklift : MonoBehaviour
                 else
                 {
                     m_targetId = "";
+                    Debug.Log("COMP through node arrival");
                     m_socket.Send("ORDERCOMP");
                 }
             }else if (m_targetNodeAction != "")
@@ -436,6 +462,12 @@ public class Forklift : MonoBehaviour
                 switch (m_targetNodeAction)
                 {
                     case "delivershelf":
+                        m_arriveAction = "dropcrate";
+                        goto case "goshelf";
+                    case "grabshelf":
+                        m_arriveAction = "returnstart";
+                        goto case "goshelf";
+                    case "goshelf":
                         //rotate, change height, then moveforward
                         var shelfRow = int.Parse(m_order.Split(',')[3]);
                         ShelfNode shelfNode = m_targetNode.GetComponent<ShelfNode>();
@@ -443,7 +475,6 @@ public class Forklift : MonoBehaviour
                         m_targetHeight = shelfNode.baseHeight + shelfNode.offset * shelfRow;
                         m_targetPosition = AsFlatPos(shelfNode.shelfTransform.position);
                         m_targetNodeAction = "";
-                        m_arriveAction = "dropcrate";
                         m_rotationFirst = true;
                         break;
                     case "checktruckgrab":

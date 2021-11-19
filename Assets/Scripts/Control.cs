@@ -19,24 +19,32 @@ public class Control : MonoBehaviour
 
         public string rowName = "";
 
-        List<bool> occupied = null;
+        List<string> occupied = null;
+        List<string> status = null;
 
         public void InitList()
         {
-            occupied = new List<bool>();
+            occupied = new List<string>();
+            status = new List<string>();
             for (int i = 0; i < width * height; i++)
-                occupied.Add(false);
+            {
+                occupied.Add("");
+                status.Add("");
+            }
         }
 
         //returns first and column available
-        public (int, int) FirstAvailable(bool occupyReturn = false)
+        public (int, int) FirstAvailable(bool occupyReturn = false, string crateId = "")
         {
             for(int i = 0; i < occupied.Count; i++)
             {
-                if (!occupied[i])
+                if (occupied[i] == "")
                 {
                     if (occupyReturn)
-                        occupied[i] = true;
+                    {
+                        occupied[i] = crateId;
+                        //status[i] = "intransit";
+                    }
                     return (i / height + rowLocation, i % height);
                 }
             }
@@ -44,6 +52,38 @@ public class Control : MonoBehaviour
             //failure
             return (-1, -1);
         }
+
+        public (int, int) FindCrate(string crateId, bool updateStatus = false)
+        {
+            for (int i = 0; i < occupied.Count; i++)
+            {
+                //check if the crate is there and not in transit
+                if (occupied[i] == crateId && status[i] == "")
+                {
+                    if (updateStatus)
+                    {
+                        status[i] = "intransit";
+                    }
+                    return (i / height + rowLocation, i % height);
+                }
+            }
+
+            //failure
+            return (-1, -1);
+        }
+    }
+
+    //searches all shelves a returns rowName, row, height ("", -1, -1) if not found
+    private (string, int, int) FindCrate(string crateId, bool updateStatus = false)
+    {
+        for(int i = 0; i < m_shelves.Count; i++)
+        {
+            var returnVal = m_shelves[i].FindCrate(crateId, updateStatus);
+            if (returnVal != (-1, -1))
+                return (m_shelves[i].rowName, returnVal.Item1, returnVal.Item2);
+        }
+
+        return ("", -1, -1);
     }
 
     private List<Shelf> m_shelves = new List<Shelf>();
@@ -80,8 +120,7 @@ public class Control : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        //current behavior is just assign all forklifts to go to A then return
-        //recieve every queue
+        //recieve every queued message
         for(int i = 0; i < m_forklifts.Count; i++){
             var forklift = m_forklifts[i];
             var order = forklift.Recieve();
@@ -99,24 +138,28 @@ public class Control : MonoBehaviour
                             //find the proper shelf
                             Shelf shelf = FirstAvailable();
                             //send directions to the proper shelf
-                            (int, int) location = shelf.FirstAvailable(true);
+                            (int, int) location = shelf.FirstAvailable(true, m_forkliftOrders[i].Split(',')[2]);
                             string directions = "DELIVER," + shelf.rowName + "," + location.Item1 + "," + location.Item2;
                             forklift.Send(directions);
                             m_forkliftOrders[i] = directions;
                             break;
                         }
+                        //set the crate status to no longer be in transit
+                        if (m_forkliftOrders[i].Split(',')[0] == "DELIVER")
+                        {
+                        
+                        }
+
                         if (m_queuedOrders.Count > 0)
                         {
                             string nextOrder = m_queuedOrders[0];
                             m_queuedOrders.RemoveAt(0);
-                            forklift.Send(nextOrder);
-                            m_forkliftOrders[i] = nextOrder;
+                            SendCommand(nextOrder, i);
                             UpdateOrderView();
                         }
                         else
                         {
                             forklift.Send("IDLE");
-                            //update orders
                             m_forkliftOrders[i] = "IDLE";
                         }
                         break;
@@ -137,6 +180,7 @@ public class Control : MonoBehaviour
                 order = forklift.Recieve();
             }
         }
+            
     }
 
     //connect a new forklift to the central control system and return the socket
@@ -152,21 +196,42 @@ public class Control : MonoBehaviour
     //assigns a command to the first available forklift
     public void AssignCommand(string command)
     {
-        command = command.ToUpper();
-        for(int i = 0; i < m_forkliftOrders.Count; i++)
+        for (int i = 0; i < m_forkliftOrders.Count; i++)
         {
             if(m_forkliftOrders[i] == "IDLE")
             {
-                Debug.Log("Assigning: " + command + " to " + i);
-                m_forkliftOrders[i] = command;
-                m_forklifts[i].Send(command);
+                SendCommand(command, i);
                 return;
             }
         }
 
-        Debug.Log("No available forklifts to assign order to. Adding to order queue.");
         m_queuedOrders.Add(command);
         UpdateOrderView();
+    }
+
+    private void SendCommand(string command, int forkliftIndex)
+    {
+        command = command.ToUpper();
+        //check if its a find crate order
+        var args = command.Split(',');
+        if (args[0] == "CRATESHELF")
+        {
+            var location = FindCrate(args[1], true);
+            if (location != ("", -1, -1))
+            {
+                command = "CRATESHELF," + location.Item1 + "," + location.Item2 + "," + location.Item3 + "," + args[1];
+            }
+            else
+            {
+                m_queuedOrders.Add(command);
+                UpdateOrderView();
+            }
+        }
+
+        Debug.Log("Assigning: " + command + " to " + forkliftIndex);
+        m_forkliftOrders[forkliftIndex] = command;
+        m_forklifts[forkliftIndex].Send(command);
+        return;
     }
 
     //finds the first available shelf
@@ -214,7 +279,7 @@ public class Control : MonoBehaviour
         string[] args = arguments.Split(',');
         if (args.Length > 2 && args[0] == "DROPOFF")
         {
-            for (int i = 2; i < args.Length; i++)
+            for (int i = args.Length - 1; i >= 2; i--)
             {
                 AssignCommand("CRATE,LOADINGBAYONE,"+args[i]);
             }
