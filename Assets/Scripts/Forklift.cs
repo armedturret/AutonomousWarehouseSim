@@ -38,6 +38,7 @@ public class Forklift : MonoBehaviour
     private string m_arriveAction = "";
     private string m_currentGoal = "";
     private string m_targetId = "";
+    private string m_lastHeldCrate = "";
     private bool m_rotationFirst = true;
     private LineNode m_targetNode = null;
     private LineNode m_previousNode = null;
@@ -106,12 +107,13 @@ public class Forklift : MonoBehaviour
             {
                 foreach (var crate in interactTrigger.currentGameObjects)
                 {
-                    if (crate.GetComponent<Crate>() && crate.GetComponent<Crate>().Id == m_targetId && m_targetId != "")
+                    if (crate.GetComponent<Crate>() && IsTargetCrate(crate.GetComponent<Crate>()) && m_targetId != "")
                     {
                         crate.transform.SetParent(crateTransform);
                         crate.transform.localPosition = Vector3.zero;
                         crate.transform.localRotation = Quaternion.identity;
                         crateObject = crate;
+                        m_lastHeldCrate = crate.GetComponent<Crate>().Id;
                         m_targetId = "";
                         //check if it needs to back up first, otherwise complete the order
                         if (m_arriveAction == "returnstart")
@@ -237,20 +239,21 @@ public class Forklift : MonoBehaviour
             //drop the crate and then back off
             switch (m_arriveAction)
             {
-                case "dropcrate":
+                case "dropcrateshelf":
                     //drop the crate at the right location upon arrival
                     crateObject.transform.SetParent(null);
                     crateObject = null;
                     m_targetPosition = AsFlatPos(m_targetNode.transform.position);
-                    m_arriveAction = "resetheight";
+                    m_arriveAction = "resetheightshelf";
                     break;
-                case "resetheight":
+                case "resetheightshelf":
                     //set height to 0 upon arrival
                     m_arriveAction = "";
                     m_rotationFirst = false;
                     m_targetHeight = 0f;
                     Debug.Log("COMP through height");
-                    m_socket.Send("ORDERCOMP");
+                    var orderArgs = m_order.Split(',');
+                    m_socket.Send("DELIVEREDSHELF,"+m_lastHeldCrate+","+orderArgs[1] + "," + orderArgs[2] + "," + orderArgs[3]);
                     break;
                 case "returnstart":
                     //return to the start of the truck node and check if theres a crate held
@@ -290,6 +293,17 @@ public class Forklift : MonoBehaviour
 
     private bool m_obstructed = false;
 
+    private bool IsTargetCrate(Crate crate)
+    {
+        string[] targets = m_targetId.Split(',');
+        for(int i = 0; i < targets.Length; i++)
+        {
+            if (targets[i] == crate.Id)
+                return true;
+        }
+        return false;
+    }
+
     public void RecalculateObstructed()
     {
         //something is detected, stop for now treating it as an obstruction
@@ -297,9 +311,9 @@ public class Forklift : MonoBehaviour
         for(int i = 0; i < detectTrigger.currentGameObjects.Count; i++)
         {
             GameObject currentIndex = detectTrigger.currentGameObjects[i];
-            if(currentIndex == gameObject || 
-                (currentIndex.GetComponent<Crate>() 
-                && currentIndex.GetComponent<Crate>().Id == m_targetId 
+            if (currentIndex == gameObject ||
+                (currentIndex.GetComponent<Crate>()
+                && IsTargetCrate(currentIndex.GetComponent<Crate>())
                 && m_targetId != "" 
                 && crateObject == null)
                 || (crateObject != null && currentIndex == crateObject))
@@ -342,11 +356,16 @@ public class Forklift : MonoBehaviour
                     }
                     goto default;
                 case "CRATE":
-                    if (args.Length == 3 && crateObject == null)
+                    if (args.Length >= 3 && crateObject == null)
                     {
                         m_order = order;
                         m_currentGoal = args[1];
-                        m_targetId = args[2];
+                        string crateArg = args[2];
+                        for (int i = 3; i < args.Length; i++)
+                        {
+                            crateArg += "," + args[i];
+                        }
+                        m_targetId = crateArg;
                         //goal is to check if its a truck node and move down it to complete its actions but not required
                         m_targetNodeAction = "checktruckgrab";
                         if (orderText != null)
@@ -462,7 +481,7 @@ public class Forklift : MonoBehaviour
                 switch (m_targetNodeAction)
                 {
                     case "delivershelf":
-                        m_arriveAction = "dropcrate";
+                        m_arriveAction = "dropcrateshelf";
                         goto case "goshelf";
                     case "grabshelf":
                         m_arriveAction = "returnstart";

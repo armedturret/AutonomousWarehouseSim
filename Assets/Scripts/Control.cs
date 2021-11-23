@@ -20,31 +20,23 @@ public class Control : MonoBehaviour
         public string rowName = "";
 
         List<string> occupied = null;
-        List<string> status = null;
 
         public void InitList()
         {
             occupied = new List<string>();
-            status = new List<string>();
             for (int i = 0; i < width * height; i++)
             {
                 occupied.Add("");
-                status.Add("");
             }
         }
 
         //returns first and column available
-        public (int, int) FirstAvailable(bool occupyReturn = false, string crateId = "")
+        public (int, int) FirstAvailable()
         {
             for(int i = 0; i < occupied.Count; i++)
             {
                 if (occupied[i] == "")
                 {
-                    if (occupyReturn)
-                    {
-                        occupied[i] = crateId;
-                        //status[i] = "intransit";
-                    }
                     return (i / height + rowLocation, i % height);
                 }
             }
@@ -53,17 +45,13 @@ public class Control : MonoBehaviour
             return (-1, -1);
         }
 
-        public (int, int) FindCrate(string crateId, bool updateStatus = false)
+        public (int, int) FindCrate(string crateId)
         {
             for (int i = 0; i < occupied.Count; i++)
             {
                 //check if the crate is there and not in transit
-                if (occupied[i] == crateId && status[i] == "")
+                if (occupied[i] == crateId)
                 {
-                    if (updateStatus)
-                    {
-                        status[i] = "intransit";
-                    }
                     return (i / height + rowLocation, i % height);
                 }
             }
@@ -71,19 +59,19 @@ public class Control : MonoBehaviour
             //failure
             return (-1, -1);
         }
-    }
 
-    //searches all shelves a returns rowName, row, height ("", -1, -1) if not found
-    private (string, int, int) FindCrate(string crateId, bool updateStatus = false)
-    {
-        for(int i = 0; i < m_shelves.Count; i++)
+        //checks if the rowLocation and height fits here
+        public bool IsLocationHere((int, int) location)
         {
-            var returnVal = m_shelves[i].FindCrate(crateId, updateStatus);
-            if (returnVal != (-1, -1))
-                return (m_shelves[i].rowName, returnVal.Item1, returnVal.Item2);
+            return location.Item1 >= rowLocation && location.Item1 < rowLocation + width && location.Item2 < height;
         }
 
-        return ("", -1, -1);
+        //this takes the int in terms of rowLocation not just row
+        public void CrateArrived((int, int) location, string crateId)
+        {
+            int index = (location.Item1 - rowLocation) * height + location.Item2;
+            occupied[index] = crateId;
+        }
     }
 
     private List<Shelf> m_shelves = new List<Shelf>();
@@ -131,25 +119,22 @@ public class Control : MonoBehaviour
                 Debug.Log("Message recieved: " + order);
                 switch (args[0])
                 {
+                    case "DELIVEREDSHELF":
+                        //determine what shelf to occupy
+                        (string, int, int) occupyLocation = (args[2], int.Parse(args[3]), int.Parse(args[4]));
+                        UpdateShelf(occupyLocation, args[1]);
+                        goto case "ORDERCOMP";
                     case "ORDERCOMP":
                         //send a delivery order
                         if (m_forkliftOrders[i].Split(',')[0] == "CRATE")
                         {
                             //find the proper shelf
-                            Shelf shelf = FirstAvailable();
-                            //send directions to the proper shelf
-                            (int, int) location = shelf.FirstAvailable(true, m_forkliftOrders[i].Split(',')[2]);
-                            string directions = "DELIVER," + shelf.rowName + "," + location.Item1 + "," + location.Item2;
+                            (string, int, int) location = FirstAvailable();
+                            string directions = "DELIVER," + location.Item1 + "," + location.Item2 + "," + location.Item3;
                             forklift.Send(directions);
                             m_forkliftOrders[i] = directions;
                             break;
                         }
-                        //set the crate status to no longer be in transit
-                        if (m_forkliftOrders[i].Split(',')[0] == "DELIVER")
-                        {
-                        
-                        }
-
                         if (m_queuedOrders.Count > 0)
                         {
                             string nextOrder = m_queuedOrders[0];
@@ -216,7 +201,7 @@ public class Control : MonoBehaviour
         var args = command.Split(',');
         if (args[0] == "CRATESHELF")
         {
-            var location = FindCrate(args[1], true);
+            var location = FindCrate(args[1]);
             if (location != ("", -1, -1))
             {
                 command = "CRATESHELF," + location.Item1 + "," + location.Item2 + "," + location.Item3 + "," + args[1];
@@ -234,20 +219,45 @@ public class Control : MonoBehaviour
         return;
     }
 
-    //finds the first available shelf
-    private Shelf FirstAvailable()
+    //finds the first available shelf returns rowName, row, height ("", -1, -1) if not found
+    private (string, int, int) FirstAvailable()
     {
         foreach(var shelf in m_shelves)
         {
             //see if the shelf is available
-            if(shelf.FirstAvailable() != (-1, -1))
+            var returnVal = shelf.FirstAvailable();
+            if (returnVal != (-1, -1))
             {
-                return shelf;
+                return (shelf.rowName, returnVal.Item1, returnVal.Item2);
             }
         }
 
         Debug.LogError("Warehouse overoccupied");
-        return null;
+        return ("", -1, -1);
+    }
+
+    //searches all shelves and returns rowName, row, height ("", -1, -1) if not found
+    private (string, int, int) FindCrate(string crateId)
+    {
+        for (int i = 0; i < m_shelves.Count; i++)
+        {
+            var returnVal = m_shelves[i].FindCrate(crateId);
+            if (returnVal != (-1, -1))
+                return (m_shelves[i].rowName, returnVal.Item1, returnVal.Item2);
+        }
+
+        return ("", -1, -1);
+    }
+
+    private void UpdateShelf((string, int, int) location, string crateId)
+    {
+        for(int i = 0; i < m_shelves.Count; i++)
+        {
+            if(m_shelves[i].rowName == location.Item1 && m_shelves[i].IsLocationHere((location.Item2, location.Item3)))
+            {
+                m_shelves[i].CrateArrived((location.Item2, location.Item3), crateId);
+            }
+        }
     }
 
     private void UpdateOrderView()
@@ -277,11 +287,18 @@ public class Control : MonoBehaviour
     {
         //spawn crates if it is a dropoff argument
         string[] args = arguments.Split(',');
+        //make a string of all crates in the truck
+        string crateArg = args[2];
+        for(int i = 3; i < args.Length; i++)
+        {
+            crateArg += "," + args[i]; 
+        }
+
         if (args.Length > 2 && args[0] == "DROPOFF")
         {
-            for (int i = args.Length - 1; i >= 2; i--)
+            for (int i = 2; i < args.Length; i++)
             {
-                AssignCommand("CRATE,LOADINGBAYONE,"+args[i]);
+                AssignCommand("CRATE,LOADINGBAYONE,"+crateArg);
             }
         }
     }
