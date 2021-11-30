@@ -6,13 +6,15 @@ public class TruckSpawn : MonoBehaviour
     public GameObject truckPrefab;
     public GameObject cratePrefab;
 
+    public string location = "";
+
     //spawns a truck at a location with specific arguments
     public void SpawnTruck(string arguments)
     {
         //spawn a truck and specify its arguments
         GameObject truckObject = Instantiate(truckPrefab, transform.position, transform.rotation);
         Truck truck = truckObject.GetComponent<Truck>();
-        truck.Arrive(arguments);
+        truck.Arrive(arguments, location);
 
         //spawn crates if it is a dropoff argument
         string[] args = arguments.Split(',');

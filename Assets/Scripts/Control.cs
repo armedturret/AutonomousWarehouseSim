@@ -83,6 +83,9 @@ public class Control : MonoBehaviour
 
     private List<string> m_queuedOrders = new List<string>();
 
+    //current list of requests and droppoffs from various trucks (type, cratesremaining, Truck)
+    private List<(string, string, Truck)> m_truckRequisitions = new List<(string, string, Truck)>();
+
     private void Awake()
     {
         Instance = this;
@@ -128,11 +131,21 @@ public class Control : MonoBehaviour
                         //send a delivery order
                         if (m_forkliftOrders[i].Split(',')[0] == "CRATE")
                         {
+                            //update any truck requistions
+                            UpdateTruckRequisition(args[1]);
+
                             //find the proper shelf
                             (string, int, int) location = FirstAvailable();
+                            UpdateShelf(location, args[1]);
                             string directions = "DELIVER," + location.Item1 + "," + location.Item2 + "," + location.Item3;
                             forklift.Send(directions);
                             m_forkliftOrders[i] = directions;
+
+                            break;
+                        }
+                        else if(m_forkliftOrders[i].Split(',')[0] == "CRATESHELF")
+                        {
+                            SendCommand(UpdateTruckRequisition(args[1], true), i);
                             break;
                         }
                         if (m_queuedOrders.Count > 0)
@@ -283,7 +296,7 @@ public class Control : MonoBehaviour
         }
     }
 
-    public void TruckArrived(string arguments)
+    public void TruckArrived(Truck truck, string arguments, string location)
     {
         //spawn crates if it is a dropoff argument
         string[] args = arguments.Split(',');
@@ -298,13 +311,80 @@ public class Control : MonoBehaviour
         {
             for (int i = 2; i < args.Length; i++)
             {
-                AssignCommand("CRATE,LOADINGBAYONE,"+crateArg);
+                AssignCommand("CRATE,"+location+","+crateArg);
             }
         }
+
+        //request crates if it is a request argument
+        if(args.Length > 2 && args[0] == "PICKUP")
+        {
+            //assign the command to grab each of the crates
+            for(int i = 2; i < args.Length; i++)
+            {
+                AssignCommand("CRATESHELF," + args[i]);
+            }
+        }
+
+        m_truckRequisitions.Add((args[0], crateArg, truck));
+        Debug.Log("New truck requisition: " + m_truckRequisitions[m_truckRequisitions.Count - 1]);
     }
 
     public void TruckLeft(string loadingBayId)
     {
 
+    }
+
+    //updates the necessary truck requisition and returns the command needed
+    private string UpdateTruckRequisition(string crateId, bool locate = false)
+    {
+        //check every order linearly
+        for(int i = 0; i < m_truckRequisitions.Count; i++)
+        {
+            var crates = new List<string>(m_truckRequisitions[i].Item2.Split(','));
+            if (crates.Contains(crateId))
+            {
+                //check what to do
+                string type = m_truckRequisitions[i].Item1;
+                if (type == "DROPOFF")
+                {
+                    //remove from list and return nothing
+                    crates.Remove(crateId);
+                    m_truckRequisitions[i] = (m_truckRequisitions[i].Item1, string.Join(",", crates), m_truckRequisitions[i].Item3);
+                    UpdateTruckIndex(i);
+                    Debug.Log("Crate removed from truck: " + crateId);
+                    return "";
+                }
+                else if (type == "PICKUP")
+                {
+                    if (locate)
+                    {
+                        //determine if crate needs to be delivered to specific location
+                        return "DROPOFF," + m_truckRequisitions[i].Item3.location;
+                    }
+                    else
+                    {
+                        //dropped on truck so remove from list
+                        crates.Remove(crateId);
+                        m_truckRequisitions[i] = (m_truckRequisitions[i].Item1, string.Join(",", crates), m_truckRequisitions[i].Item3);
+                        UpdateTruckIndex(i);
+                        Debug.Log("Crate loaded on truck: " + crateId);
+                        return "";
+                    }
+                }
+            }
+        }
+
+        Debug.Log(crateId + " not found in truck requisitions");
+        return "";
+    }
+
+    private void UpdateTruckIndex(int index)
+    {
+        //check if nothing left
+        if(m_truckRequisitions[index].Item2.Length == 0)
+        {
+            Destroy(m_truckRequisitions[index].Item3.gameObject);
+            m_truckRequisitions.RemoveAt(index);
+        }
     }
 }

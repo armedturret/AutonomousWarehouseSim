@@ -89,6 +89,9 @@ public class Forklift : MonoBehaviour
 
             RecalculateObstructed();
 
+            //arrived at the location
+            if (m_arriveAction == "returnstartnocrate" && m_obstructed)
+                Arrived();
             if (m_obstructed) return;
 
             if (m_rotationFirst)
@@ -123,7 +126,7 @@ public class Forklift : MonoBehaviour
                         else if(m_arriveAction != "compifcrate")
                         {
                             Debug.Log("COMP through crate");
-                            m_socket.Send("ORDERCOMP");
+                            m_socket.Send("ORDERCOMP," + m_lastHeldCrate);
                         }   
                         return;
                     }
@@ -260,13 +263,24 @@ public class Forklift : MonoBehaviour
                     m_arriveAction = "compifcrate";
                     m_targetPosition = AsFlatPos(m_targetNode.transform.position);
                     break;
+                case "returnstartnocrate":
+                    m_arriveAction = "comp";
+                    m_targetPosition = AsFlatPos(m_targetNode.transform.position);
+                    crateObject.transform.SetParent(null);
+                    crateObject = null;
+                    break;
+                case "comp":
+                    m_arriveAction = "";
+                    Debug.Log("COMP through no crate");
+                    m_socket.Send("ORDERCOMP");
+                    break;
                 case "compifcrate":
                     m_arriveAction = "";
                     m_rotationFirst = false;
                     m_targetHeight = 0f;
                     Debug.Log("COMP through ifcrate");
                     if (crateObject != null)
-                        m_socket.Send("ORDERCOMP");
+                        m_socket.Send("ORDERCOMP," + m_lastHeldCrate);
                     else
                         m_socket.Send("ORDERINV");
                     break;
@@ -323,7 +337,7 @@ public class Forklift : MonoBehaviour
         }
 
         m_obstructed = count > 0;
-        if (m_arriveAction != "")
+        if (m_arriveAction != "" && m_arriveAction != "returnstartnocrate")
             m_obstructed = false;
     }
 
@@ -405,6 +419,14 @@ public class Forklift : MonoBehaviour
                         break;
                     }
                     goto default;
+                case "DROPOFF":
+                    m_order = order;
+                    m_currentGoal = args[1];
+                    m_targetNodeAction = "delivertruck";
+                    if (orderText != null)
+                        orderText.text = m_order;
+                    UpdateTargetNode();
+                    break;
                 case "IDLE":
                     m_order = order;
                     m_currentGoal = startNode.nodeId;
@@ -497,22 +519,43 @@ public class Forklift : MonoBehaviour
                         m_rotationFirst = true;
                         break;
                     case "checktruckgrab":
-                        //check if this is a truck node, otherwise send an order invalid
-                        TruckNode truckNode = m_targetNode.GetComponent<TruckNode>();
-                        if (truckNode)
                         {
-                            //traverse the truck node
-                            m_arriveAction = "returnstart";
-                            FaceTowards(truckNode.truckEnd.position);
-                            m_targetNodeAction = "";
-                            m_targetPosition = AsFlatPos(truckNode.truckEnd.position);
+                            //check if this is a truck node, otherwise send an order invalid
+                            TruckNode truckNode = m_targetNode.GetComponent<TruckNode>();
+                            if (truckNode)
+                            {
+                                //traverse the truck node
+                                m_arriveAction = "returnstart";
+                                FaceTowards(truckNode.truckEnd.position);
+                                m_targetNodeAction = "";
+                                m_targetPosition = AsFlatPos(truckNode.truckEnd.position);
+                            }
+                            else
+                            {
+                                m_targetId = "";
+                                m_socket.Send("ORDERINV");
+                            }
+                            break;
                         }
-                        else
+                    case "delivertruck":
                         {
-                            m_targetId = "";
-                            m_socket.Send("ORDERINV");
+                            //move towards the target node, drop if obstructed or reaches the end
+                            TruckNode truckNode = m_targetNode.GetComponent<TruckNode>();
+                            if (truckNode)
+                            {
+                                //traverse the truck node
+                                m_arriveAction = "returnstartnocrate";
+                                FaceTowards(truckNode.truckEnd.position);
+                                m_targetNodeAction = "";
+                                m_targetPosition = AsFlatPos(truckNode.truckEnd.position);
+                            }
+                            else
+                            {
+                                m_targetId = "";
+                                m_socket.Send("ORDERINV");
+                            }
+                            break;
                         }
-                        break;
                 }
             }
 

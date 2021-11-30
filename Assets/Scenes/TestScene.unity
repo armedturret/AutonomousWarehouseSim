@@ -2097,16 +2097,16 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 917523627}
-        m_TargetAssemblyTypeName: Control, Assembly-CSharp
-        m_MethodName: AssignCommand
+      - m_Target: {fileID: 1945581059}
+        m_TargetAssemblyTypeName: TruckSpawn, Assembly-CSharp
+        m_MethodName: SpawnTruck
         m_Mode: 5
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
           m_IntArgument: 0
           m_FloatArgument: 0
-          m_StringArgument: CRATESHELF,CRATE1
+          m_StringArgument: PICKUP,LOADINGBAYONE,CRATE1,CRATE2
           m_BoolArgument: 0
         m_CallState: 2
 --- !u!114 &1382137200
@@ -2153,7 +2153,7 @@ Mesh:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: pb_Mesh17346
+  m_Name: pb_Mesh17356
   serializedVersion: 10
   m_SubMeshes:
   - serializedVersion: 2
@@ -3417,7 +3417,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1945581057}
   m_LocalRotation: {x: -0, y: 0.70710677, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: -5.000001, y: -0.75, z: -25}
+  m_LocalPosition: {x: -5, y: -0.75, z: -25}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -3437,6 +3437,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   truckPrefab: {fileID: 4491983736710390990, guid: bdd45978b9d43a4468e96fdde7afba55, type: 3}
   cratePrefab: {fileID: 5518892420924814898, guid: 4e5cc24d45b79ce4298b40da380320fe, type: 3}
+  location: LOADINGBAYONE
 --- !u!850595691 &1965886190
 LightingSettings:
   m_ObjectHideFlags: 0
