@@ -272,7 +272,7 @@ public class Forklift : MonoBehaviour
                 case "comp":
                     m_arriveAction = "";
                     Debug.Log("COMP through no crate");
-                    m_socket.Send("ORDERCOMP");
+                    m_socket.Send("ORDERCOMP," + m_lastHeldCrate);
                     break;
                 case "compifcrate":
                     m_arriveAction = "";

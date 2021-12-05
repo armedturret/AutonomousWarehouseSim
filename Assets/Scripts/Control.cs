@@ -148,6 +148,11 @@ public class Control : MonoBehaviour
                             SendCommand(UpdateTruckRequisition(args[1], true), i);
                             break;
                         }
+                        else if(m_forkliftOrders[i].Split(',')[0] == "DROPOFF")
+                        {
+                            UpdateTruckRequisition(args[1]);
+                        }
+
                         if (m_queuedOrders.Count > 0)
                         {
                             string nextOrder = m_queuedOrders[0];
