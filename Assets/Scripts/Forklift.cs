@@ -32,6 +32,22 @@ public class Forklift : MonoBehaviour
     [SerializeField]
     private float armExtensionSpeed = 1f;
 
+    [Header("Battery Settings")]
+    [SerializeField]
+    private float totalBattery = 1.0f;
+    [SerializeField]
+    [Tooltip("What percent to attempt to recharge below")]
+    private float minAttemptRecharge = 0.3f;
+    [SerializeField]
+    [Tooltip("How long after recharging before accepting orders again")]
+    private float minOperable = 0.5f;
+    [SerializeField]
+    [Tooltip("Percent charge per unit to lose in recharge")]
+    private float dischargeRate = 0.02f;
+    [SerializeField]
+    [Tooltip("Percent charge per second to gain from recharging")]
+    private float rechargeRate = 0.05f;
+
     private string m_order = "";
     private string m_specialNodeGoal = "";
     private string m_targetNodeAction = "";
@@ -88,6 +104,20 @@ public class Forklift : MonoBehaviour
             iterations++;
 
             RecalculateObstructed();
+
+            //recharge if at charging station
+            if ((m_order == "IDLE" || m_order == "RECHARGING") && m_currentGoal == "")
+            {
+                totalBattery += rechargeRate * timePassed;
+                totalBattery = Mathf.Clamp(totalBattery, 0f, 1.0f);
+            }
+
+            if(m_order == "RECHARGING" && totalBattery >= minOperable)
+            {
+                Debug.Log("COMP through recharge");
+                m_order = "IDLE";
+                m_socket.Send("ORDERCOMP," + m_lastHeldCrate);
+            }
 
             //arrived at the location
             if (m_arriveAction == "returnstartnocrate" && m_obstructed)
@@ -217,6 +247,10 @@ public class Forklift : MonoBehaviour
         deltaPos = Vector3.ClampMagnitude(deltaPos, moveSpeed * timePassed);
         transform.position += deltaPos;
 
+        //update charge based on distance travelled
+        totalBattery -= deltaPos.magnitude * dischargeRate;
+        totalBattery = Mathf.Clamp(totalBattery, 0f, 1.0f);
+
         if ((m_targetPosition - transform.position).magnitude < moveSpeed * timePassed)
         {
             //snap to target if near
@@ -256,7 +290,18 @@ public class Forklift : MonoBehaviour
                     m_targetHeight = 0f;
                     Debug.Log("COMP through height");
                     var orderArgs = m_order.Split(',');
-                    m_socket.Send("DELIVEREDSHELF,"+m_lastHeldCrate+","+orderArgs[1] + "," + orderArgs[2] + "," + orderArgs[3]);
+                    string recharging = "";
+                    if (totalBattery <= minAttemptRecharge)
+                    {
+                        recharging = ",RECHARGING";
+                        Debug.Log("Recharging");
+                        m_order = "RECHARGING";
+                        m_currentGoal = startNode.nodeId;
+                        if (orderText != null)
+                            orderText.text = m_order;
+                        UpdateTargetNode();
+                    }
+                    m_socket.Send("DELIVEREDSHELF,"+m_lastHeldCrate+","+orderArgs[1] + "," + orderArgs[2] + "," + orderArgs[3] + recharging);
                     break;
                 case "returnstart":
                     //return to the start of the truck node and check if theres a crate held
@@ -271,8 +316,15 @@ public class Forklift : MonoBehaviour
                     break;
                 case "comp":
                     m_arriveAction = "";
-                    Debug.Log("COMP through no crate");
-                    m_socket.Send("ORDERCOMP," + m_lastHeldCrate);
+                    if (totalBattery > minAttemptRecharge)
+                    {
+                        Debug.Log("COMP through no crate");
+                        m_socket.Send("ORDERCOMP," + m_lastHeldCrate);
+                    }
+                    else
+                    {
+                        GoRecharge(m_lastHeldCrate);
+                    }
                     break;
                 case "compifcrate":
                     m_arriveAction = "";
@@ -484,7 +536,7 @@ public class Forklift : MonoBehaviour
             m_specialNodeGoal = "";
             m_currentGoal = "";
             //only have complete an order if not idling
-            if (m_order != "IDLE" && m_targetNodeAction == "")
+            if (m_order != "IDLE" && m_order != "RECHARGING" && m_targetNodeAction == "")
             {
                 if(m_targetId != "")
                 {
@@ -494,8 +546,16 @@ public class Forklift : MonoBehaviour
                 else
                 {
                     m_targetId = "";
-                    Debug.Log("COMP through node arrival");
-                    m_socket.Send("ORDERCOMP");
+                    if(totalBattery > minAttemptRecharge)
+                    {
+                        Debug.Log("COMP through node arrival");
+                        m_socket.Send("ORDERCOMP");
+                    }
+                    else
+                    {
+                        GoRecharge();
+                    }
+                    
                 }
             }else if (m_targetNodeAction != "")
             {
@@ -595,6 +655,17 @@ public class Forklift : MonoBehaviour
 
         FaceTowards(m_targetNode.transform.position);
         m_targetPosition = AsFlatPos(m_targetNode.transform.position);
+    }
+
+    private void GoRecharge(string additional = "")
+    {
+        Debug.Log("Recharging");
+        m_order = "RECHARGING";
+        m_socket.Send("RECHARGING," + additional);
+        m_currentGoal = startNode.nodeId;
+        if (orderText != null)
+            orderText.text = m_order;
+        UpdateTargetNode();
     }
 
     private void FaceTowards(Vector3 targetObject)

@@ -122,10 +122,23 @@ public class Control : MonoBehaviour
                 Debug.Log("Message recieved: " + order);
                 switch (args[0])
                 {
+                    case "RECHARGING":
+                        m_forkliftOrders[i] = "RECHARGING";
+                        //update if it was a dropoff order
+                        if (m_forkliftOrders[i].Split(',')[0] == "DROPOFF")
+                        {
+                            UpdateTruckRequisition(args[1]);
+                        }
+                        break;
                     case "DELIVEREDSHELF":
                         //determine what shelf to occupy
                         (string, int, int) occupyLocation = (args[2], int.Parse(args[3]), int.Parse(args[4]));
                         UpdateShelf(occupyLocation, args[1]);
+                        if (args.Length == 6 && args[5] == "RECHARGING")
+                        {
+                            m_forkliftOrders[i] = "RECHARGING";
+                            break;
+                        }
                         goto case "ORDERCOMP";
                     case "ORDERCOMP":
                         //send a delivery order
