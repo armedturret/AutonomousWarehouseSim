@@ -7,6 +7,26 @@ public class LineNode : MonoBehaviour
     public string nodeId = ""; //"" if not important spot
     public List<LineNode> nextNodes = new List<LineNode>();
     public List<string> nextNodeDirections;
+    public GameObject linePrefab;
+
+    public void CreateConnection(Transform previousNode)
+    {
+        //create a new line object
+        GameObject lineObject = Instantiate(linePrefab, transform);
+        LineRenderer lineRenderer = lineObject.GetComponent<LineRenderer>();
+
+        Vector3[] positions = {previousNode.position, transform.position};
+        lineRenderer.SetPositions(positions);
+
+    }
+
+    private void Start()
+    {
+        foreach(LineNode node in nextNodes)
+        {
+            node.CreateConnection(transform);
+        }
+    }
 
     protected virtual void OnDrawGizmos()
     {
