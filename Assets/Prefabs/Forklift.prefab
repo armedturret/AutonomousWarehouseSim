@@ -168,6 +168,11 @@ MonoBehaviour:
   minArmExtension: 0
   maxArmExtension: 8
   armExtensionSpeed: 3
+  totalBattery: 1
+  minAttemptRecharge: 0.3
+  minOperable: 0.5
+  dischargeRate: 0.0005
+  rechargeRate: 0.05
 --- !u!65 &7422013169680196921
 BoxCollider:
   m_ObjectHideFlags: 0
