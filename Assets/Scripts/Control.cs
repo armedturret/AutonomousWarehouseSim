@@ -86,21 +86,16 @@ public class Control : MonoBehaviour
     //current list of requests and droppoffs from various trucks (type, cratesremaining, Truck)
     private List<(string, string, Truck)> m_truckRequisitions = new List<(string, string, Truck)>();
 
-    private void Awake()
+    Control()
     {
         Instance = this;
-
-        //add the availability
-        foreach(var shelfInfo in shelfInfos){
-            var temp = new Shelf();
-            temp.height = shelfInfo.height;
-            temp.width = shelfInfo.width;
-            temp.rowLocation = shelfInfo.rowLocation;
-            temp.rowName = shelfInfo.rowName;
-            temp.InitList();
-            m_shelves.Add(temp);
-        }
     }
+
+    private void Awake()
+    {
+        
+    }
+
 
     // Start is called before the first frame update
     void Start()
@@ -207,6 +202,18 @@ public class Control : MonoBehaviour
         m_forkliftOrders.Add("IDLE");
 
         return temp.pair;
+    }
+
+    public void AddShelfInfo(ShelfInfo shelfInfo)
+    {   
+        //add the availability
+        var temp = new Shelf();
+        temp.height = shelfInfo.height;
+        temp.width = shelfInfo.width;
+        temp.rowLocation = shelfInfo.rowLocation;
+        temp.rowName = shelfInfo.rowName;
+        temp.InitList();
+        m_shelves.Add(temp);
     }
 
     //assigns a command to the first available forklift

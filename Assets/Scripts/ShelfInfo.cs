@@ -8,4 +8,9 @@ public class ShelfInfo : MonoBehaviour
     public int width = 2;
     public int rowLocation = 0;
     public int height = 3;
+
+    private void Awake()
+    {
+        Control.Instance.AddShelfInfo(this);
+    }
 }
