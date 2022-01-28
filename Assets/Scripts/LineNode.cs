@@ -37,5 +37,6 @@ public class LineNode : MonoBehaviour
                 Gizmos.DrawLine(transform.position, nextNodes[i].transform.position);
         }
         Gizmos.color = Color.blue;
+        Gizmos.DrawCube(transform.position, new Vector3(0.2f, 0.2f, 0.2f));
     }
 }
