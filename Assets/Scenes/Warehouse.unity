@@ -1866,6 +1866,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Forklift (5)
       objectReference: {fileID: 0}
+    - target: {fileID: 5679112162612352729, guid: 69f141629eb45b349ab75014a023f082, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5679112162612352730, guid: 69f141629eb45b349ab75014a023f082, type: 3}
       propertyPath: m_RootOrder
       value: 14
@@ -2542,7 +2546,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   nodeId: 
   nextNodes:
-  - {fileID: 1120750021}
+  - {fileID: 1120750023}
   - {fileID: 1417575014}
   nextNodeDirections:
   - DEFAULT
@@ -4225,6 +4229,10 @@ PrefabInstance:
     - target: {fileID: 5679112162612352729, guid: 69f141629eb45b349ab75014a023f082, type: 3}
       propertyPath: m_Name
       value: Forklift (3)
+      objectReference: {fileID: 0}
+    - target: {fileID: 5679112162612352729, guid: 69f141629eb45b349ab75014a023f082, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5679112162612352730, guid: 69f141629eb45b349ab75014a023f082, type: 3}
       propertyPath: m_RootOrder
@@ -6076,7 +6084,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1120750022}
-  - component: {fileID: 1120750021}
   - component: {fileID: 1120750023}
   m_Layer: 0
   m_Name: LineNode (4)
@@ -6085,24 +6092,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1120750021
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1120750020}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c006f9a26ab3a524cb9f00438d575d7c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  nodeId: 
-  nextNodes:
-  - {fileID: 1445411613}
-  nextNodeDirections:
-  - DEFAULT
-  linePrefab: {fileID: 2785692366484821164, guid: 67fa6093f63eb61448fee0d5f580bc05, type: 3}
 --- !u!4 &1120750022
 Transform:
   m_ObjectHideFlags: 0
@@ -6134,9 +6123,9 @@ MonoBehaviour:
   - {fileID: 1445411613}
   nextNodeDirections:
   - DEFAULT
-  linePrefab: {fileID: 0}
+  linePrefab: {fileID: 2785692366484821164, guid: 67fa6093f63eb61448fee0d5f580bc05, type: 3}
   blockId: Stations
-  blockType: 0
+  blockType: 1
 --- !u!1001 &1154138976
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -7019,6 +7008,10 @@ PrefabInstance:
     - target: {fileID: 5679112162612352729, guid: 69f141629eb45b349ab75014a023f082, type: 3}
       propertyPath: m_Name
       value: Forklift (4)
+      objectReference: {fileID: 0}
+    - target: {fileID: 5679112162612352729, guid: 69f141629eb45b349ab75014a023f082, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5679112162612352730, guid: 69f141629eb45b349ab75014a023f082, type: 3}
       propertyPath: m_RootOrder
